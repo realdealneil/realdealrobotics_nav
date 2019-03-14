@@ -16,9 +16,6 @@ splineMaker::splineMaker()
 {
 	LoadParams();
 	
-	//vector<Eigen::Vector3d> waypoints = mySplineMaker.sampleWaypointGenerator();
-	//cout << "There are " << waypoints.size() << " waypoints in the list\n";
-	
 	//! Get the list of gate corners:
 	_corner_vec = getGateCornerList();
 	_center_vec = getGateCenters(_corner_vec);
