@@ -1,0 +1,8 @@
+<launch>
+  <arg name="gate_locations_file"
+    default="$(find rdr_spline_path)/config/nominal_gate_locations.yaml" />
+  
+  <node pkg="rdr_spline_path" type="rdr_spline_path_node">
+    <rosparam command="load" file="$(arg gate_locations_file"/>
+  </node>
+</launch>
