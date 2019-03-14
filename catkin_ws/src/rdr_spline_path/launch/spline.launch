@@ -1,8 +1,12 @@
+<?xml version="1.0"?>
 <launch>
   <arg name="gate_locations_file"
     default="$(find rdr_spline_path)/config/nominal_gate_locations.yaml" />
+  <arg name="challenge_gate_list"
+    default="$(find rdr_spline_path)/config/challenge_alphapilot_test3.yaml" />
   
-  <node pkg="rdr_spline_path" type="rdr_spline_path_node">
-    <rosparam command="load" file="$(arg gate_locations_file"/>
+  <node name="rdr_spline_path" pkg="rdr_spline_path" type="rdr_spline_path_node">
+    <rosparam command="load" file="$(arg gate_locations_file)"/>
+    <rosparam command="load" file="$(arg challenge_gate_list)"/>
   </node>
 </launch>
