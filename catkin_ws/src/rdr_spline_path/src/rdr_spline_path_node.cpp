@@ -20,9 +20,12 @@ int main(int argc, char ** argv)
 	
 	splineMaker mySplineMaker;
 	
-	vector<Eigen::Vector3d> waypoints = mySplineMaker.sampleWaypointGenerator();
+	//vector<Eigen::Vector3d> waypoints = mySplineMaker.sampleWaypointGenerator();
+	//cout << "There are " << waypoints.size() << " waypoints in the list\n";
 	
-	cout << "There are " << waypoints.size() << " waypoints in the list\n";
+	//! Get the list of gate corners:
+	vector<gate_corners> corner_vec = mySplineMaker.getGateCornerList();
+	vector<Eigen::Vector3d> center_vec = mySplineMaker.getGateCenters(corner_vec);
 	
 	ros::spin();
 	return 0;

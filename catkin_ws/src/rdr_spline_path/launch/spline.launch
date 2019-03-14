@@ -5,7 +5,7 @@
   <arg name="challenge_gate_list"
     default="$(find rdr_spline_path)/config/challenge_alphapilot_test3.yaml" />
   
-  <node name="rdr_spline_path" pkg="rdr_spline_path" type="rdr_spline_path_node">
+  <node name="rdr_spline_path" pkg="rdr_spline_path" type="rdr_spline_path_node" output="screen">
     <rosparam command="load" file="$(arg gate_locations_file)"/>
     <rosparam command="load" file="$(arg challenge_gate_list)"/>
   </node>
