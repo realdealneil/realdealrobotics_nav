@@ -27,11 +27,7 @@ struct gate_corners {
 class splineMaker
 {
 public:
-	splineMaker() 
-		: _nh("~")
-	{
-		LoadParams();
-	}
+	splineMaker();
 	
 	void LoadParams();
 	
@@ -46,6 +42,8 @@ public:
 	
 private:
 	ros::NodeHandle _nh;
+	std::vector<gate_corners> _corner_vec;
+	std::vector<Eigen::Vector3d> _center_vec;
 	double spline;
 };
 

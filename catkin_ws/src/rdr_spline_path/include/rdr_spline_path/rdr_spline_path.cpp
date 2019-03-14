@@ -11,6 +11,19 @@
 #include <vector>
 using namespace std;
 
+splineMaker::splineMaker()
+		: _nh("~")
+{
+	LoadParams();
+	
+	//vector<Eigen::Vector3d> waypoints = mySplineMaker.sampleWaypointGenerator();
+	//cout << "There are " << waypoints.size() << " waypoints in the list\n";
+	
+	//! Get the list of gate corners:
+	_corner_vec = getGateCornerList();
+	_center_vec = getGateCenters(_corner_vec);
+}
+
 vector<Eigen::Vector3d>  splineMaker::sampleWaypointGenerator(void)
 {
 	Eigen::Vector3d point;
@@ -133,7 +146,7 @@ void splineMaker::LoadParams()
 	std::cout << "LoadParams\n";
 	std::vector<double> temp12(12);
 	
-	_nh.getParam("Gate1/nominal_location", temp12);
+	_nh.getParam("/rdr_spline_path/Gate1/nominal_location", temp12);
 	
 	for (int i=0; i<12; i++)
 	{
