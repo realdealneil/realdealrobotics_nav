@@ -48,17 +48,17 @@ private:
 
 
 template <int dimension>
-class SplineMath
+class SplineIntegrator
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
     static Scalar Integrate(const Eigen::Spline<Scalar, dimension>& spline,
-                            Scalar lowerLimit,
-                            Scalar upperLimit,
                             Eigen::Integrator<Scalar>& integrator);
 
     static Scalar Integrate(const Eigen::Spline<Scalar, dimension>& spline,
+                            Scalar lowerLimit,
+                            Scalar upperLimit,
                             Eigen::Integrator<Scalar>& integrator);
 
 private:
@@ -66,14 +66,14 @@ private:
 };
 
 template <int dimension>
-inline Scalar SplineMath<dimension>::Integrate(const Eigen::Spline<Scalar, dimension>& spline,
+inline Scalar SplineIntegrator<dimension>::Integrate(const Eigen::Spline<Scalar, dimension>& spline,
                                                Eigen::Integrator<Scalar>& integrator)
 {
-    return SplineMath<dimension>::Integrate(spline, 0., 1., integrator);
+    return SplineIntegrator<dimension>::Integrate(spline, 0., 1., integrator);
 }
 
 template <int dimension>
-Scalar SplineMath<dimension>::Integrate(const Eigen::Spline<Scalar, dimension>& spline, 
+Scalar SplineIntegrator<dimension>::Integrate(const Eigen::Spline<Scalar, dimension>& spline, 
                                         Scalar lowerLimit,
                                         Scalar upperLimit, 
                                         Eigen::Integrator<Scalar>& integrator)
