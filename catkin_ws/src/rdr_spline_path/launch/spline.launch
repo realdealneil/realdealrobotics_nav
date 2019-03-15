@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="gate_locations_file"
-    default="$(find rdr_spline_path)/config/nominal_gate_locations.yaml" />
+    default="$(find rdr_spline_path)/config/nominal_gate_locations_org.yaml" />
   <arg name="challenge_gate_list"
     default="$(find rdr_spline_path)/config/challenge_alphapilot_test3.yaml" />
   

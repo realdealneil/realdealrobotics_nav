@@ -16,39 +16,40 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
 #include <vector>
+#include <rdr_spline_path/GateLocationList.h>
 
-#include <ros/ros.h>
 
-struct gate_corners {
-	Eigen::Vector3d ul;
-	Eigen::Vector3d ur;
-	Eigen::Vector3d lr;
-	Eigen::Vector3d ll;
-};
 
 class splineMaker
 {
 public:
-	splineMaker();
+	splineMaker(const rdr_spline_path::GateLocationList& gate_location_list);
 	
-	void LoadParams();
-	
-	void Update();	
-	
-private:
 
-	std::vector<gate_corners> getGateCornerList(void);
-	Eigen::Vector3d find_center(gate_corners c);
-	std::vector<Eigen::Vector3d> getGateCenters(std::vector<gate_corners> corners);
-	std::vector<Eigen::Vector3d> getGateNormals();
+	/**
+	 * 	Generate a sample spline path.  This is for testing the spline stuff in general:
+	 */
 	
-	ros::NodeHandle _nh;
-	ros::Publisher _gateCornerPub;
-	visualization_msgs::MarkerArray _gateCornerMarkerArray;
-	void CreateCornerMarkersForPublishing();
+  // expects the indexes in the gate_list to be 1 based!!
+  std::vector<Eigen::Vector3d> sampleWaypointGenerator(const std::vector<size_t>& gate_list);
+	//std::vector<Eigen::Vector3d> getGateNormals();
+  void print_gate_list();
 	
-	std::vector<gate_corners> _corner_vec;
-	std::vector<Eigen::Vector3d> _center_vec;
+	//Eigen::Vector3d find_center(gate_corners c);
+
+	void Update();
+
+private:
+  // this is 0 based!!! 
+	rdr_spline_path::GateLocationList gate_location_list_;
+  std::vector<Eigen::Vector3d> _gate_normals_vec; 
+//	ros::NodeHandle _nh;
+//	ros::Publisher _gateCornerPub;
+//	visualization_msgs::MarkerArray _gateCornerMarkerArray;
+//	void CreateCornerMarkersForPublishing();
+	
+//	std::vector<gate_corners> _corner_vec;
+//	std::vector<Eigen::Vector3d> _center_vec;
 	std::vector<Eigen::Vector3d> _gate_normals_vec;
 	double spline;
 };
