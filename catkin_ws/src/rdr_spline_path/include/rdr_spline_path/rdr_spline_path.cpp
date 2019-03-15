@@ -131,11 +131,7 @@ vector<Eigen::Vector3d> splineMaker::getGateCenters(std::vector<gate_corners> co
 		Eigen::Vector3d center = find_center(corners.at(i));
 		centers.push_back(center);
 	}
-	
-	cout << "Gate center 1: " << centers[0] << "\n";
 	return centers;
-	
-	
 }
 
 vector<Eigen::Vector3d> splineMaker::getGateNormals()
@@ -209,6 +205,11 @@ void splineMaker::CreateCornerMarkersForPublishing()
 		p.y = _gate_front_points[i](1);
 		p.z = _gate_front_points[i](2);
 		gate.points.push_back(p);
+		// back point:
+		p.x = _gate_back_points[i](0);
+		p.y = _gate_back_points[i](1);
+		p.z = _gate_back_points[i](2);
+		gate.points.push_back(p);		
 		
 		_gateCornerMarkerArray.markers.push_back(gate);
 	}	
