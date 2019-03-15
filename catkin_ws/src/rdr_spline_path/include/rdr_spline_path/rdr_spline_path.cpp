@@ -170,7 +170,7 @@ std::vector<Eigen::Vector3d> splineMaker::constructWaypointList()
 	std::vector<Eigen::Vector3d> wplist;
 	
 	//! Vehicle start location:
-	Eigen::Vector3d vehicle_start_point(0.3, 52.0, 2.5);	//! From challenge_hard.yaml file
+	Eigen::Vector3d vehicle_start_point(0.0, 0, 0);	//! From challenge_hard.yaml file
 	wplist.push_back(vehicle_start_point);
 	
 	/** For each gate, figure out which point (front or back) is closest 
@@ -202,6 +202,30 @@ std::vector<Eigen::Vector3d> splineMaker::constructWaypointList()
 	//! Ok, we should have the waypoint list constructed now!
 	cout << "Waypoint list is constructed!  There are " << _center_vec.size() << 
 		" gates and " << wplist.size() << " waypoints\n";
+		
+	//! Publish the waypoint path as line_strip markers in rviz:
+	//! Publish points of first gate:		
+	visualization_msgs::Marker waypoints;
+	waypoints.header.frame_id = "world";
+	waypoints.header.stamp = ros::Time::now();
+	waypoints.id = 100;
+	waypoints.type = visualization_msgs::Marker::LINE_STRIP;
+	waypoints.action = visualization_msgs::Marker::ADD;
+	waypoints.scale.x = 0.1;
+	waypoints.scale.y = 0.1;
+	waypoints.scale.z = 0.1;
+	waypoints.color.b = 1.0;
+	waypoints.color.a = 1.0;
+	
+	for (int i=0; i<(int)wplist.size(); i++)
+	{	
+		geometry_msgs::Point p;
+		p.x = wplist[i](0);
+		p.y = wplist[i](1);
+		p.z = wplist[i](2);
+		waypoints.points.push_back(p);		
+	}	
+	_gateCornerMarkerArray.markers.push_back(waypoints);
 }
 
 void splineMaker::CreateCornerMarkersForPublishing()
