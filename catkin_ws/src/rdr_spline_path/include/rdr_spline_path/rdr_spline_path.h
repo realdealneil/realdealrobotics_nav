@@ -50,7 +50,7 @@ private:
 	
 //	std::vector<gate_corners> _corner_vec;
 //	std::vector<Eigen::Vector3d> _center_vec;
-	std::vector<Eigen::Vector3d> _gate_normals_vec;
+//	std::vector<Eigen::Vector3d> _gate_normals_vec;
 	double spline;
 };
 

@@ -9,6 +9,7 @@ struct EigenGateLocation
   Eigen::Matrix<3,4,double> corners;
   Eigen::Vector3d center;
   Eigen::Vector3d perturbation_bound;
+  // TODO: Add Normal, and front and back points.
 }
 
 struct EigenGateLocationList

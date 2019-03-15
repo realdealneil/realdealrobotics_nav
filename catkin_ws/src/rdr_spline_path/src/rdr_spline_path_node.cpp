@@ -103,7 +103,7 @@ int main(int argc, char ** argv)
 	ros::Rate loop_rate(5);
 	while (ros::ok())
 	{
-		mySplineMaker.Update();
+		//mySplineMaker.Update();
 		ros::spinOnce();
 		loop_rate.sleep();
 	}
