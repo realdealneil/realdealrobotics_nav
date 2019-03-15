@@ -48,7 +48,7 @@ private:
 
 
 template <int dimension>
-class SplineIntegrator
+class SplineIntegration
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -66,14 +66,14 @@ private:
 };
 
 template <int dimension>
-inline Scalar SplineIntegrator<dimension>::Integrate(const Eigen::Spline<Scalar, dimension>& spline,
+inline Scalar SplineIntegration<dimension>::Integrate(const Eigen::Spline<Scalar, dimension>& spline,
                                                Eigen::Integrator<Scalar>& integrator)
 {
-    return SplineIntegrator<dimension>::Integrate(spline, 0., 1., integrator);
+    return SplineIntegration<dimension>::Integrate(spline, 0., 1., integrator);
 }
 
 template <int dimension>
-Scalar SplineIntegrator<dimension>::Integrate(const Eigen::Spline<Scalar, dimension>& spline, 
+Scalar SplineIntegration<dimension>::Integrate(const Eigen::Spline<Scalar, dimension>& spline, 
                                         Scalar lowerLimit,
                                         Scalar upperLimit, 
                                         Eigen::Integrator<Scalar>& integrator)
