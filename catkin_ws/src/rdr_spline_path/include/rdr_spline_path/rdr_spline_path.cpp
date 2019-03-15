@@ -20,10 +20,9 @@ splineMaker::splineMaker()
 	
 	//! Get the list of gate corners:
 	_corner_vec = getGateCornerList();
-	
-	
 	_center_vec = getGateCenters(_corner_vec);
 	_gate_normals_vec = getGateNormals();
+	constructFrontPoints(3.0, _gate_front_points, _gate_back_points);
 	
 	CreateCornerMarkersForPublishing();
 }
@@ -148,10 +147,23 @@ vector<Eigen::Vector3d> splineMaker::getGateNormals()
 		Eigen::Vector3d normal;
 		Eigen::Vector3d Vec1 = _corner_vec[i].ul - _center_vec[i];
 		Eigen::Vector3d Vec2 = _corner_vec[i].ur - _center_vec[i];
-		normal = Vec1.cross(Vec2);		
+		normal = Vec1.cross(Vec2);	
+		normal.normalize();	
 		normals.push_back(normal);
 	}
 	return normals;
+}
+
+void splineMaker::constructFrontPoints(double d, vector<Eigen::Vector3d>& frontPoints, vector<Eigen::Vector3d>& backPoints)
+{
+	//! Make the front points: 
+	for (int i=0; i<(int)_center_vec.size(); i++)
+	{
+		Eigen::Vector3d fp = _center_vec[i] + d * _gate_normals_vec[i];
+		Eigen::Vector3d bp = _center_vec[i] - d * _gate_normals_vec[i];
+		frontPoints.push_back(fp);
+		backPoints.push_back(bp);
+	}
 }
 
 void splineMaker::CreateCornerMarkersForPublishing()
@@ -191,11 +203,15 @@ void splineMaker::CreateCornerMarkersForPublishing()
 		p.x = _center_vec[i](0);
 		p.y = _center_vec[i](1);
 		p.z = _center_vec[i](2);
+		gate.points.push_back(p);		
+		// Front point:
+		p.x = _gate_front_points[i](0);
+		p.y = _gate_front_points[i](1);
+		p.z = _gate_front_points[i](2);
 		gate.points.push_back(p);
 		
 		_gateCornerMarkerArray.markers.push_back(gate);
-	}
-	
+	}	
 }
 
 void splineMaker::Update()

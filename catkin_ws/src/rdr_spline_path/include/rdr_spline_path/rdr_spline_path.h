@@ -41,6 +41,7 @@ private:
 	Eigen::Vector3d find_center(gate_corners c);
 	std::vector<Eigen::Vector3d> getGateCenters(std::vector<gate_corners> corners);
 	std::vector<Eigen::Vector3d> getGateNormals();
+	void constructFrontPoints(double d, std::vector<Eigen::Vector3d>& frontPoints, std::vector<Eigen::Vector3d>& backPoints);
 	
 	ros::NodeHandle _nh;
 	ros::Publisher _gateCornerPub;
@@ -50,7 +51,8 @@ private:
 	std::vector<gate_corners> _corner_vec;
 	std::vector<Eigen::Vector3d> _center_vec;
 	std::vector<Eigen::Vector3d> _gate_normals_vec;
-	double spline;
+	std::vector<Eigen::Vector3d> _gate_front_points;
+	std::vector<Eigen::Vector3d> _gate_back_points;
 };
 
 #endif // RDR_SPLINE_PATH_H
