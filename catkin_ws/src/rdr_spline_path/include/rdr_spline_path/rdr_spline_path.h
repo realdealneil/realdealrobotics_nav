@@ -43,6 +43,8 @@ private:
 	std::vector<Eigen::Vector3d> getGateNormals();
 	void constructFrontPoints(double d, std::vector<Eigen::Vector3d>& frontPoints, std::vector<Eigen::Vector3d>& backPoints);
 	
+	std::vector<Eigen::Vector3d> constructWaypointList();
+	
 	ros::NodeHandle _nh;
 	ros::Publisher _gateCornerPub;
 	visualization_msgs::MarkerArray _gateCornerMarkerArray;
@@ -53,6 +55,8 @@ private:
 	std::vector<Eigen::Vector3d> _gate_normals_vec;
 	std::vector<Eigen::Vector3d> _gate_front_points;
 	std::vector<Eigen::Vector3d> _gate_back_points;
+	
+	std::vector<Eigen::Vector3d> _primaryWaypoints;
 };
 
 #endif // RDR_SPLINE_PATH_H

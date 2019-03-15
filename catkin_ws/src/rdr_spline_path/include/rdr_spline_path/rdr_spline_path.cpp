@@ -23,6 +23,7 @@ splineMaker::splineMaker()
 	_center_vec = getGateCenters(_corner_vec);
 	_gate_normals_vec = getGateNormals();
 	constructFrontPoints(3.0, _gate_front_points, _gate_back_points);
+	_primaryWaypoints = constructWaypointList();
 	
 	CreateCornerMarkersForPublishing();
 }
@@ -160,6 +161,47 @@ void splineMaker::constructFrontPoints(double d, vector<Eigen::Vector3d>& frontP
 		frontPoints.push_back(fp);
 		backPoints.push_back(bp);
 	}
+}
+
+//! Construct waypoint list:
+std::vector<Eigen::Vector3d> splineMaker::constructWaypointList()
+{
+	//! First, add the vehicle's start position:
+	std::vector<Eigen::Vector3d> wplist;
+	
+	//! Vehicle start location:
+	Eigen::Vector3d vehicle_start_point(0.3, 52.0, 2.5);	//! From challenge_hard.yaml file
+	wplist.push_back(vehicle_start_point);
+	
+	/** For each gate, figure out which point (front or back) is closest 
+	 * 	to the previous waypoint in the list.  Then, add the points:
+	 */
+	Eigen::Vector3d prev_point = vehicle_start_point;	
+	for (int i=0; i<(int)_center_vec.size(); i++)
+	{
+		Eigen::Vector3d v_prev_to_fp = _gate_front_points[i] - prev_point;
+		double dist_prev_to_fp = v_prev_to_fp.norm();
+		
+		Eigen::Vector3d v_prev_to_bp = _gate_back_points[i] - prev_point;
+		double dist_prev_to_bp = v_prev_to_bp.norm();
+		
+		if (dist_prev_to_fp < dist_prev_to_bp)
+		{
+			wplist.push_back(_gate_front_points[i]);
+			wplist.push_back(_center_vec[i]);
+			wplist.push_back(_gate_back_points[i]);
+			prev_point = _gate_back_points[i];
+		} else {
+			wplist.push_back(_gate_back_points[i]);
+			wplist.push_back(_center_vec[i]);
+			wplist.push_back(_gate_front_points[i]);
+			prev_point = _gate_front_points[i];
+		}
+	}
+	
+	//! Ok, we should have the waypoint list constructed now!
+	cout << "Waypoint list is constructed!  There are " << _center_vec.size() << 
+		" gates and " << wplist.size() << " waypoints\n";
 }
 
 void splineMaker::CreateCornerMarkersForPublishing()
