@@ -24,7 +24,7 @@ splineMaker::splineMaker(const rdr_spline_path::GateLocationList& gate_location_
 
 std::vector<Eigen::Vector3d>  splineMaker::sampleWaypointGenerator(const std::vector<size_t>& gate_list)
 {
-  std::cout << "TODO: make spline with for these gates:" << std::endl;
+  std::cout << "TODO: make spline with these gates:" << std::endl;
 
   for (auto& gate_index : gate_list)
   {
