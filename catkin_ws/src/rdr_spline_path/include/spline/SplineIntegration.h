@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "SplineFitting.h"
+//#include "SplineFitting.h"
 
 #include <unsupported/Eigen/Splines>
 #include <unsupported/Eigen/NumericalIntegration>
@@ -31,34 +31,27 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     static Scalar Integrate(const Eigen::Spline<Scalar, dimension>& spline,
+							Eigen::Integrator<Scalar>& integrator,
                             const Scalar lower_limit = static_cast<Scalar>(0),
-                            const Scalar upper_limit = static_cast<Scalar>(1),
-                            Eigen::Integrator<Scalar>& integrator);
-
-    Scalar operator()(const Scalar param) const
-    {
-        // Return the normalized derivatives.
-        return sqrt(spline.derivatives(param, 1).col(1).squaredNorm());
-    }
-
-private:
-
-    Scalar _absolute_error{1.e-3};
-    Scalar _relative_rrror{1.e-3};
-
+                            const Scalar upper_limit = static_cast<Scalar>(1)
+                            );    
 };
 
 template <int dimension>
 Scalar SplineIntegration<dimension>::Integrate(const Eigen::Spline<Scalar, dimension>& spline, 
-                                               const Scalar lower_limit = static_cast<Scalar>(0),
-                                               const Scalar upper_limit = static_cast<Scalar>(1),
-                                               Eigen::Integrator<Scalar>& integrator)
+											   Eigen::Integrator<Scalar>& integrator,
+                                               const Scalar lower_limit,
+                                               const Scalar upper_limit
+                                               )
 {
+	Scalar absolute_error{1.e-3};
+    Scalar relative_error{1.e-3};
+
     Scalar integral = integrator.quadratureAdaptive(spline,
                                                     lower_limit,
                                                     upper_limit,
-                                                    _absolute_error,
-                                                    _relative_rrror,
+                                                    absolute_error,
+                                                    relative_error,
                                                     Eigen::Integrator<Scalar>::GaussKronrod15);
     
     return integral;
