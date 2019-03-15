@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <unsupported/Eigen/Splines>
@@ -44,6 +45,7 @@ private:
 	void constructFrontPoints(double d, std::vector<Eigen::Vector3d>& frontPoints, std::vector<Eigen::Vector3d>& backPoints);
 	
 	std::vector<Eigen::Vector3d> constructWaypointList();
+	void MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wplist);
 	
 	ros::NodeHandle _nh;
 	ros::Publisher _gateCornerPub;

@@ -25,6 +25,9 @@ splineMaker::splineMaker()
 	constructFrontPoints(3.0, _gate_front_points, _gate_back_points);
 	_primaryWaypoints = constructWaypointList();
 	
+	//! Make a spline!
+	MakeSplineFromWaypoints(_primaryWaypoints);
+	
 	CreateCornerMarkersForPublishing();
 }
 
@@ -226,6 +229,8 @@ std::vector<Eigen::Vector3d> splineMaker::constructWaypointList()
 		waypoints.points.push_back(p);		
 	}	
 	_gateCornerMarkerArray.markers.push_back(waypoints);
+	
+	return wplist;
 }
 
 void splineMaker::CreateCornerMarkersForPublishing()
@@ -281,9 +286,70 @@ void splineMaker::CreateCornerMarkersForPublishing()
 	}	
 }
 
+void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wplist)
+{
+	cout << "Making spline from waypoint list. There are " << wplist.size() << " waypoints\n";
+	
+	Eigen::MatrixXd wpMat(3, wplist.size());
+	for (int i=0; i<(int)wplist.size(); i++)
+	{
+		wpMat.col(i) = wplist.at(i);
+	}
+	
+	//cout << "waypoint matrix:\n" << wpMat << "\n";
+	typedef Eigen::Spline<double, 3> spline3d;
+	spline3d s = Eigen::SplineFitting<spline3d>::Interpolate(wpMat, 3);
+	//int dimension = 3;
+	//Eigen::Matrix<double, 3, 1> derivatives = s.derivatives(param, 1).col(1);
+	
+	//spline3d s = Eigen::SplineFitting<spline3d>::InterpolateWithDerivatices(
+	
+	//! Get values from the spline at a variety of points along the spline and add to the rviz display:
+	int num_sample_pts = 1000;
+	vector<Eigen::Vector3d> spline_pts;
+	
+	for (int i=0; i<num_sample_pts+1; i++)
+	{
+		double u = (double)i/(double)num_sample_pts;
+		
+		spline_pts.emplace_back(s(u));
+	}
+	
+	cout << "First Point: \n" << spline_pts[0] << "\n";
+	cout << "Halfway Point: \n" << spline_pts[500] << "\n";
+	cout << "End Point: \n" << spline_pts[1000] << "\n";
+	
+	//! Try to draw the spline using line markers in rviz:
+	//! Publish the waypoint path as line_strip markers in rviz:
+	//! Publish points of first gate:		
+	visualization_msgs::Marker waypoints;
+	waypoints.header.frame_id = "world";
+	waypoints.header.stamp = ros::Time::now();
+	waypoints.id = 200;
+	waypoints.type = visualization_msgs::Marker::LINE_STRIP;
+	waypoints.action = visualization_msgs::Marker::ADD;
+	waypoints.scale.x = 0.1;
+	waypoints.scale.y = 0.1;
+	waypoints.scale.z = 0.1;
+	waypoints.color.r = 1.0;
+	waypoints.color.a = 1.0;
+	
+	for (int i=0; i<(int)spline_pts.size(); i++)
+	{	
+		geometry_msgs::Point p;
+		p.x = spline_pts[i](0);
+		p.y = spline_pts[i](1);
+		p.z = spline_pts[i](2);
+		waypoints.points.push_back(p);		
+	}	
+	_gateCornerMarkerArray.markers.push_back(waypoints);
+	
+}
+
 void splineMaker::Update()
 {
 	_gateCornerPub.publish(_gateCornerMarkerArray);
+	
 }
 
 void splineMaker::LoadParams()
