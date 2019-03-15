@@ -39,11 +39,13 @@ public:
 	std::vector<gate_corners> getGateCornerList(void);
 	Eigen::Vector3d find_center(gate_corners c);
 	std::vector<Eigen::Vector3d> getGateCenters(std::vector<gate_corners> corners);
+	std::vector<Eigen::Vector3d> getGateNormals();
 	
 private:
 	ros::NodeHandle _nh;
 	std::vector<gate_corners> _corner_vec;
 	std::vector<Eigen::Vector3d> _center_vec;
+	std::vector<Eigen::Vector3d> _gate_normals_vec;
 	double spline;
 };
 

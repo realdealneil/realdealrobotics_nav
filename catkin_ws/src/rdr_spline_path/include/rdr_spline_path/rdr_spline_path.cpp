@@ -14,11 +14,12 @@ using namespace std;
 splineMaker::splineMaker()
 		: _nh("~")
 {
-	LoadParams();
+	//LoadParams();
 	
 	//! Get the list of gate corners:
 	_corner_vec = getGateCornerList();
 	_center_vec = getGateCenters(_corner_vec);
+	_gate_normals_vec = getGateNormals();
 }
 
 vector<Eigen::Vector3d>  splineMaker::sampleWaypointGenerator(void)
@@ -136,6 +137,21 @@ vector<Eigen::Vector3d> splineMaker::getGateCenters(std::vector<gate_corners> co
 		Eigen::Vector3d center = find_center(corners.at(i));
 		centers.push_back(center);
 	}
+}
+
+vector<Eigen::Vector3d> splineMaker::getGateNormals()
+{
+	//! For each gate, use the center and two corner points to figure out the normal to the plane:	
+	vector<Eigen::Vector3d> normals;
+	for (int i=0; i<(int)_center_vec.size(); i++)
+	{
+		Eigen::Vector3d normal;
+		Eigen::Vector3d Vec1 = _corner_vec[i].ul - _center_vec[i];
+		Eigen::Vector3d Vec2 = _corner_vec[i].ur - _center_vec[i];
+		normal = Vec1.cross(Vec2);		
+		normals.push_back(normal);
+	}
+	return normals;
 }
 
 void splineMaker::LoadParams()
