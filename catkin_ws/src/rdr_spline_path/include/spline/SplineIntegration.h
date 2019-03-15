@@ -5,20 +5,20 @@
 
 #pragma once
 
-#include "SplineFitting.h"
+typedef double Scalar;
 
 #include <unsupported/Eigen/Splines>
 #include <unsupported/Eigen/NumericalIntegration>
 
 
 /**
- * The integrand which is evaluated in the calculation of the arc length of a curve.
+ * The spline function is evaluated in the calculation of the arc length of a curve.
  */
 template <int dimension>
-class SplineFunctor
+class SplineFunction
 {
 public:
-    SplineFunctor(const Eigen::Spline<Scalar, dimension>& spline)
+    SplineFunction(const Eigen::Spline<Scalar, dimension>& spline)
         : spline(spline)
     {
     }
@@ -30,12 +30,17 @@ public:
     Scalar operator()(const Scalar param) const
     {
         Eigen::Matrix<Scalar, dimension, 1> derivatives = spline.derivatives(param, 1).col(1);
-        return  sqrt(derivatives.squaredNorm());
+
+        Scalar sumOfSquaredDerivatives = derivatives.squaredNorm();
+
+        Scalar integrand = sqrt(sumOfSquaredDerivatives);
+
+        return integrand;
     }
 
 private:
     /**
-     * @brief The spline to evaluate the arc length of.
+     * The spline to evaluate the arc length of.
      */
     const Eigen::Spline<Scalar, dimension> spline;
 
@@ -47,31 +52,28 @@ class SplineMath
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-   
-    static Scalar arcLength(const Eigen::Spline<Scalar, dimension>& spline,
-                            Eigen::Integrator<Scalar>& integrator);
- 
-    static Scalar arcLength(const Eigen::Spline<Scalar, dimension>& spline,
+    
+    static Scalar Integrate(const Eigen::Spline<Scalar, dimension>& spline,
                             Scalar lowerLimit,
                             Scalar upperLimit,
                             Eigen::Integrator<Scalar>& integrator);
 
-private:
-    static Scalar arcLengthIntegrand(const Eigen::Spline<Scalar, dimension>& spline,
-                                     const Scalar& u);
+    static Scalar Integrate(const Eigen::Spline<Scalar, dimension>& spline,
+                            Eigen::Integrator<Scalar>& integrator);
 
+private:
     static Eigen::Spline<Scalar, dimension> spline;
 };
 
 template <int dimension>
-inline Scalar SplineMath<dimension>::arcLength(const Eigen::Spline<Scalar, dimension>& spline,
+inline Scalar SplineMath<dimension>::Integrate(const Eigen::Spline<Scalar, dimension>& spline,
                                                Eigen::Integrator<Scalar>& integrator)
 {
-    return SplineMath<dimension>::arcLength(spline, 0., 1., integrator);
+    return SplineMath<dimension>::Integrate(spline, 0., 1., integrator);
 }
 
 template <int dimension>
-Scalar SplineMath<dimension>::arcLength(const Eigen::Spline<Scalar, dimension>& spline, 
+Scalar SplineMath<dimension>::Integrate(const Eigen::Spline<Scalar, dimension>& spline, 
                                         Scalar lowerLimit,
                                         Scalar upperLimit, 
                                         Eigen::Integrator<Scalar>& integrator)
@@ -79,9 +81,9 @@ Scalar SplineMath<dimension>::arcLength(const Eigen::Spline<Scalar, dimension>& 
     Scalar absolute_error = 1.e-3;
     Scalar relative_error = 1.e-3;
 
-    SplineFunctor<dimension> splineFunctor(spline);
+    SplineFunction<dimension> splineFunction(spline);
 
-    Scalar integral = integrator.quadratureAdaptive(splineFunctor,
+    Scalar integral = integrator.quadratureAdaptive(splineFunction,
                                                     lowerLimit,
                                                     upperLimit,
                                                     absolute_error,
