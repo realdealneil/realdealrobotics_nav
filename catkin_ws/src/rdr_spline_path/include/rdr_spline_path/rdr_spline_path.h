@@ -14,6 +14,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <unsupported/Eigen/Splines>
+#include <spline/SplineIntegration.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
 #include <vector>
@@ -59,6 +60,8 @@ private:
 	std::vector<Eigen::Vector3d> _gate_back_points;
 	
 	std::vector<Eigen::Vector3d> _primaryWaypoints;
+	
+	Eigen::Integrator<Scalar> _integrator;
 };
 
 #endif // RDR_SPLINE_PATH_H

@@ -6,7 +6,6 @@
  */
 
 #include <rdr_spline_path/rdr_spline_path.h>
-#include <spline/SplineIntegration.h>
 
 #include <iostream>
 #include <vector>
@@ -14,6 +13,7 @@ using namespace std;
 
 splineMaker::splineMaker()
 		: _nh("~")
+		, _integrator(200)
 {
 	//LoadParams();
 	
@@ -237,53 +237,81 @@ std::vector<Eigen::Vector3d> splineMaker::constructWaypointList()
 void splineMaker::CreateCornerMarkersForPublishing()
 {
 	//! Publish points of first gate:		
+	
+	visualization_msgs::Marker gate_pts;
+	
+	
+	gate_pts.header.frame_id = "world";
+	gate_pts.header.stamp = ros::Time::now();	
+	gate_pts.type = visualization_msgs::Marker::POINTS;
+	gate_pts.action = visualization_msgs::Marker::ADD;
+	gate_pts.scale.x = 0.2;
+	gate_pts.scale.y = 0.2;
+	gate_pts.scale.z = 0.2;
+	gate_pts.color.g = 1.0;
+	gate_pts.color.a = 1.0;
+	
+	
+	
 	for (int i=0; i<(int)_corner_vec.size(); i++)
-	{
-		visualization_msgs::Marker gate;
-		gate.header.frame_id = "world";
-		gate.header.stamp = ros::Time::now();
-		gate.id = i;
-		gate.type = visualization_msgs::Marker::POINTS;
-		gate.action = visualization_msgs::Marker::ADD;
-		gate.scale.x = 0.5;
-		gate.scale.y = 0.5;
-		gate.scale.z = 0.5;
-		gate.color.g = 1.0;
-		gate.color.a = 1.0;
+	{		
+		visualization_msgs::Marker gate_lines;
+		gate_lines.header.frame_id = "world";
+		gate_lines.header.stamp = ros::Time::now();
+		gate_lines.type = visualization_msgs::Marker::LINE_STRIP;
+		gate_lines.action = visualization_msgs::Marker::ADD;
+		gate_lines.scale.x = 0.1;
+		gate_lines.scale.y = 0.1;
+		gate_lines.scale.z = 0.1;
+		gate_lines.color.b = 1.0;
+		gate_lines.color.r = 1.0;
+		gate_lines.color.a = 1.0;
+		gate_lines.id = i+1000;
+	
+		gate_pts.id = i;
 		geometry_msgs::Point p;
 		p.x = _corner_vec[i].ul(0);
 		p.y = _corner_vec[i].ul(1);
 		p.z = _corner_vec[i].ul(2);
-		gate.points.push_back(p);
+		gate_pts.points.push_back(p);
+		gate_lines.points.push_back(p);
 		p.x = _corner_vec[i].ur(0);
 		p.y = _corner_vec[i].ur(1);
 		p.z = _corner_vec[i].ur(2);
-		gate.points.push_back(p);
+		gate_pts.points.push_back(p);
+		gate_lines.points.push_back(p);
 		p.x = _corner_vec[i].lr(0);
 		p.y = _corner_vec[i].lr(1);
 		p.z = _corner_vec[i].lr(2);
-		gate.points.push_back(p);
+		gate_pts.points.push_back(p);
+		gate_lines.points.push_back(p);
 		p.x = _corner_vec[i].ll(0);
 		p.y = _corner_vec[i].ll(1);
 		p.z = _corner_vec[i].ll(2);	
-		gate.points.push_back(p);
+		gate_pts.points.push_back(p);
+		gate_lines.points.push_back(p);
+		p.x = _corner_vec[i].ul(0);
+		p.y = _corner_vec[i].ul(1);
+		p.z = _corner_vec[i].ul(2);
+		gate_lines.points.push_back(p);
 		// Center point:
 		p.x = _center_vec[i](0);
 		p.y = _center_vec[i](1);
 		p.z = _center_vec[i](2);
-		gate.points.push_back(p);		
+		gate_pts.points.push_back(p);		
 		// Front point:
 		p.x = _gate_front_points[i](0);
 		p.y = _gate_front_points[i](1);
 		p.z = _gate_front_points[i](2);
-		gate.points.push_back(p);
+		gate_pts.points.push_back(p);
 		// back point:
 		p.x = _gate_back_points[i](0);
 		p.y = _gate_back_points[i](1);
 		p.z = _gate_back_points[i](2);
-		gate.points.push_back(p);		
+		gate_pts.points.push_back(p);		
 		
-		_gateCornerMarkerArray.markers.push_back(gate);
+		_gateCornerMarkerArray.markers.push_back(gate_pts);
+		_gateCornerMarkerArray.markers.push_back(gate_lines);		
 	}	
 }
 
@@ -297,10 +325,9 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 		wpMat.col(i) = wplist.at(i);
 	}
 	
-	//cout << "waypoint matrix:\n" << wpMat << "\n";
-	typedef Eigen::Spline<double, 3> spline3d;
+	//typedef Eigen::Spline<double, 3> spline3d;
 	
-	spline3d s = Eigen::SplineFitting<spline3d>::Interpolate(wpMat, 3);
+	Eigen::Spline3d s = Eigen::SplineFitting<Eigen::Spline3d>::Interpolate(wpMat, 3);
 	//int dimension = 3;
 	//Eigen::Matrix<double, 3, 1> derivatives = s.derivatives(param, 1).col(1);
 	
@@ -347,7 +374,7 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 	_gateCornerMarkerArray.markers.push_back(waypoints);
 	
 	//! Integrate the spline:
-	//Scalar spline_length = SplineIntegration<PathType::Dimension>::Integrate(s, 0, 1, integrator);
+	//Scalar spline_length = SplineIntegration<Eigen::Spline<double,3>::Dimension>::Integrate(s, (Scalar)0.0, (Scalar)1.0, _integrator);
 	
 }
 
