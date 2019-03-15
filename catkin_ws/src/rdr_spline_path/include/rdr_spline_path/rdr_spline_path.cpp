@@ -6,6 +6,7 @@
  */
 
 #include <rdr_spline_path/rdr_spline_path.h>
+#include <spline/SplineIntegration.h>
 
 #include <iostream>
 #include <vector>
@@ -298,6 +299,7 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 	
 	//cout << "waypoint matrix:\n" << wpMat << "\n";
 	typedef Eigen::Spline<double, 3> spline3d;
+	
 	spline3d s = Eigen::SplineFitting<spline3d>::Interpolate(wpMat, 3);
 	//int dimension = 3;
 	//Eigen::Matrix<double, 3, 1> derivatives = s.derivatives(param, 1).col(1);
@@ -343,6 +345,9 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 		waypoints.points.push_back(p);		
 	}	
 	_gateCornerMarkerArray.markers.push_back(waypoints);
+	
+	//! Integrate the spline:
+	//Scalar spline_length = SplineIntegration<PathType::Dimension>::Integrate(s, 0, 1, integrator);
 	
 }
 
