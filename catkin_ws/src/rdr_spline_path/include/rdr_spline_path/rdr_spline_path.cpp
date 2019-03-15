@@ -16,21 +16,16 @@ splineMaker::splineMaker()
 {
 	//LoadParams();
 	
+	_gateCornerPub = _nh.advertise<visualization_msgs::MarkerArray>("gateCornerMarkers", 10);
+	
 	//! Get the list of gate corners:
 	_corner_vec = getGateCornerList();
+	
+	
 	_center_vec = getGateCenters(_corner_vec);
 	_gate_normals_vec = getGateNormals();
-}
-
-vector<Eigen::Vector3d>  splineMaker::sampleWaypointGenerator(void)
-{
-	Eigen::Vector3d point;
-	vector<Eigen::Vector3d> points;
 	
-	point << 0, 0, 0;
-	points.push_back(point);
-	
-	return points;
+	CreateCornerMarkersForPublishing();
 }
 
 vector<gate_corners> splineMaker::getGateCornerList(void)
@@ -137,6 +132,11 @@ vector<Eigen::Vector3d> splineMaker::getGateCenters(std::vector<gate_corners> co
 		Eigen::Vector3d center = find_center(corners.at(i));
 		centers.push_back(center);
 	}
+	
+	cout << "Gate center 1: " << centers[0] << "\n";
+	return centers;
+	
+	
 }
 
 vector<Eigen::Vector3d> splineMaker::getGateNormals()
@@ -152,6 +152,55 @@ vector<Eigen::Vector3d> splineMaker::getGateNormals()
 		normals.push_back(normal);
 	}
 	return normals;
+}
+
+void splineMaker::CreateCornerMarkersForPublishing()
+{
+	//! Publish points of first gate:		
+	for (int i=0; i<(int)_corner_vec.size(); i++)
+	{
+		visualization_msgs::Marker gate;
+		gate.header.frame_id = "world";
+		gate.header.stamp = ros::Time::now();
+		gate.id = i;
+		gate.type = visualization_msgs::Marker::POINTS;
+		gate.action = visualization_msgs::Marker::ADD;
+		gate.scale.x = 0.5;
+		gate.scale.y = 0.5;
+		gate.scale.z = 0.5;
+		gate.color.g = 1.0;
+		gate.color.a = 1.0;
+		geometry_msgs::Point p;
+		p.x = _corner_vec[i].ul(0);
+		p.y = _corner_vec[i].ul(1);
+		p.z = _corner_vec[i].ul(2);
+		gate.points.push_back(p);
+		p.x = _corner_vec[i].ur(0);
+		p.y = _corner_vec[i].ur(1);
+		p.z = _corner_vec[i].ur(2);
+		gate.points.push_back(p);
+		p.x = _corner_vec[i].lr(0);
+		p.y = _corner_vec[i].lr(1);
+		p.z = _corner_vec[i].lr(2);
+		gate.points.push_back(p);
+		p.x = _corner_vec[i].ll(0);
+		p.y = _corner_vec[i].ll(1);
+		p.z = _corner_vec[i].ll(2);	
+		gate.points.push_back(p);
+		// Center point:
+		p.x = _center_vec[i](0);
+		p.y = _center_vec[i](1);
+		p.z = _center_vec[i](2);
+		gate.points.push_back(p);
+		
+		_gateCornerMarkerArray.markers.push_back(gate);
+	}
+	
+}
+
+void splineMaker::Update()
+{
+	_gateCornerPub.publish(_gateCornerMarkerArray);
 }
 
 void splineMaker::LoadParams()

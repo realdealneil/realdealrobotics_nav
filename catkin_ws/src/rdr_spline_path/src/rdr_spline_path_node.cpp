@@ -20,6 +20,13 @@ int main(int argc, char ** argv)
 	
 	splineMaker mySplineMaker;
 	
-	ros::spin();
+	ros::Rate loop_rate(5);
+	while (ros::ok())
+	{
+		mySplineMaker.Update();
+		ros::spinOnce();
+		loop_rate.sleep();
+	}
+	
 	return 0;
 }

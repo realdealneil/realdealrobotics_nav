@@ -13,6 +13,8 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <unsupported/Eigen/Splines>
+#include <visualization_msgs/MarkerArray.h>
+#include <visualization_msgs/Marker.h>
 #include <vector>
 
 #include <ros/ros.h>
@@ -31,18 +33,20 @@ public:
 	
 	void LoadParams();
 	
-	/**
-	 * 	Generate a sample spline path.  This is for testing the spline stuff in general:
-	 */
-	std::vector<Eigen::Vector3d> sampleWaypointGenerator(void);
+	void Update();	
 	
+private:
+
 	std::vector<gate_corners> getGateCornerList(void);
 	Eigen::Vector3d find_center(gate_corners c);
 	std::vector<Eigen::Vector3d> getGateCenters(std::vector<gate_corners> corners);
 	std::vector<Eigen::Vector3d> getGateNormals();
 	
-private:
 	ros::NodeHandle _nh;
+	ros::Publisher _gateCornerPub;
+	visualization_msgs::MarkerArray _gateCornerMarkerArray;
+	void CreateCornerMarkersForPublishing();
+	
 	std::vector<gate_corners> _corner_vec;
 	std::vector<Eigen::Vector3d> _center_vec;
 	std::vector<Eigen::Vector3d> _gate_normals_vec;
