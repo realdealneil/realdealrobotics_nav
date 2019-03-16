@@ -10,16 +10,20 @@
 
 #include <iostream>
 #include <cmath>
+#include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <unsupported/Eigen/Splines>
+#include <spline/SplineIntegration.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
 #include <vector>
 #include <rdr_spline_path/GateLocationList.h>
+#include "eigen_helpers.h"
+#include <ros/ros.h> 
 
-
-
+using GateList = std::vector<size_t>; // list of gate indices
+using WaypointList = std::vector<Eigen::Vector3d>;
 class splineMaker
 {
 public:
@@ -31,27 +35,27 @@ public:
 	 */
 	
   // expects the indexes in the gate_list to be 1 based!!
-  std::vector<Eigen::Vector3d> sampleWaypointGenerator(const std::vector<size_t>& gate_list);
-	//std::vector<Eigen::Vector3d> getGateNormals();
-  void print_gate_list();
+  WaypointList sampleWaypointGenerator(const GateList& gate_list);
+	void print_gate_list();
 	
-	//Eigen::Vector3d find_center(gate_corners c);
+	
 
 	void Update();
 
+	WaypointList constructWaypointList(
+    const Eigen::Vector3d& vehicle_start_position, 
+    const GateList& gatelist);
+	void MakeSplineFromWaypoints(const WaypointList& wplist);
+	void SetCornerMarkersForPublishing(const GateList& gate_list);
+
 private:
+	ros::NodeHandle nh_;
+  ros::Publisher rvizMarkerPub_;
+  visualization_msgs::MarkerArray rvizMarkerArray_;
+	std::vector<Eigen::Vector3d> primaryWaypoints_;
+	Eigen::Integrator<Scalar> integrator_;
   // this is 0 based!!! 
-	rdr_spline_path::GateLocationList gate_location_list_;
-  std::vector<Eigen::Vector3d> _gate_normals_vec; 
-//	ros::NodeHandle _nh;
-//	ros::Publisher _gateCornerPub;
-//	visualization_msgs::MarkerArray _gateCornerMarkerArray;
-//	void CreateCornerMarkersForPublishing();
-	
-//	std::vector<gate_corners> _corner_vec;
-//	std::vector<Eigen::Vector3d> _center_vec;
-//	std::vector<Eigen::Vector3d> _gate_normals_vec;
-	double spline;
+	EigenGateLocationList gate_location_list_;
 };
 
 #endif // RDR_SPLINE_PATH_H

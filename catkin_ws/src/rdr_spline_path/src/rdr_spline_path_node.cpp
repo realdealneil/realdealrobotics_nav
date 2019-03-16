@@ -46,9 +46,6 @@ GateLocationList importGateLocations(ros::NodeHandle &n)
     }
 
     GateLocation gl;
-    gl.center.x = 0;
-    gl.center.y = 0;
-    gl.center.z = 0;
     n.getParam(location_param_name.c_str(), cornerlist);
     for (int corner_index = 0; corner_index < cornerlist.size(); corner_index++)
     {
@@ -60,15 +57,7 @@ GateLocationList importGateLocations(ros::NodeHandle &n)
       gl.corners.emplace_back(point);
       ROS_INFO("adding corner %d: [%.6f, %.6f, %.6f]", corner_index, 
         point.x, point.y, point.z);
-      gl.center.x += point.x;
-      gl.center.y += point.y;
-      gl.center.z += point.z;
     }
-    gl.center.x /= cornerlist.size();
-    gl.center.y /= cornerlist.size();
-    gl.center.z /= cornerlist.size();
-    ROS_INFO("Gate %d center is [%.3f, %.3f, %.3f]", gate_index, 
-      gl.center.x, gl.center.y, gl.center.z);
 
     if (n.hasParam(perturbation_param_name.c_str()))
     {
@@ -94,16 +83,22 @@ int main(int argc, char ** argv)
 
   GateLocationList gate_locations = importGateLocations(n);
 	splineMaker mySplineMaker{gate_locations};
-
-  // Here's the order: ['Gate10', 'Gate21', 'Gate2', 'Gate13', 'Gate9', 'Gate14', 'Gate1', 'Gate22', 'Gate15', 'Gate23', 'Gate6']
-  std::vector<size_t> gate_list{10,21,2,13,9,14,1,22,15,23,6};
+  mySplineMaker.print_gate_list();
   
-  mySplineMaker.sampleWaypointGenerator(gate_list);
+  // Here's the order: ['Gate10', 'Gate21', 'Gate2', 'Gate13', 'Gate9', 'Gate14', 'Gate1', 'Gate22', 'Gate15', 'Gate23', 'Gate6']
+  GateList gate_list{10,21,2,13,9,14,1,22,15,23,6};
+  
+  mySplineMaker.SetCornerMarkersForPublishing(gate_list);
+
+  WaypointList wplist = mySplineMaker.constructWaypointList(
+    Eigen::Vector3d{0,0,0}, gate_list);
+  
+  mySplineMaker.MakeSplineFromWaypoints(wplist);
 
 	ros::Rate loop_rate(5);
 	while (ros::ok())
 	{
-		//mySplineMaker.Update();
+		mySplineMaker.Update();
 		ros::spinOnce();
 		loop_rate.sleep();
 	}

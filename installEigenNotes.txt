@@ -1,5 +1,5 @@
 ### Installing spline stuff for AlphaPilot:
-1) Install mercurial:
+1) Install mercurial and cmake-gui
 sudo apt-get install mercurial
 
 2) clone the special eigen repo:
@@ -8,7 +8,13 @@ hg clone https://bitbucket.org/tbs1980/eigen-numerical-integration-module
 3) Build (install)
 mkdir build
 cd build
-cmake ..
+cmake-gui ..
+
+Set the install dir to be "/usr" instead of "/usr/local".  This will make 
+sure it gets used instead of the generic Eigen.
+
+Click Configure and Generate until everything gets configured and generated.  Close cmake-gui.
+
 sudo make install
 
-4) Now you can use it.  I have a sample app to start using it.  
+4) Now you can use it.  You should be able to build catkin_ws now (using "catkin_make")  
