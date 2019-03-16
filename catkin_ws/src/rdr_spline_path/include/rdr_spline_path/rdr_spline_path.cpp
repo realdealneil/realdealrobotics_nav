@@ -374,7 +374,7 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 	_gateCornerMarkerArray.markers.push_back(waypoints);
 	
 	//! Integrate the spline:
-	Scalar spline_length = SplineIntegration<Eigen::Spline3d::Dimension>::Integrate(s, (Scalar)0.0, (Scalar)1.0, _integrator);
+	Scalar spline_length = SplineIntegration<Eigen::Spline3d::Dimension>::Integrate(s, _integrator, (Scalar)0.0, (Scalar)1.0);
 	
 	cout << "Spline length is: " << spline_length << "\n";
 	

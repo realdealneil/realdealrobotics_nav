@@ -48,7 +48,7 @@ class SplineIntegration
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    static Scalar Integrate(const Eigen::Spline<Scalar, dimension>& spline,,
+    static Scalar Integrate(const Eigen::Spline<Scalar, dimension>& spline,
                             Eigen::Integrator<Scalar>& integrator,
                             const Scalar lower_limit = 0.,
                             const Scalar upper_limit = 1.);
