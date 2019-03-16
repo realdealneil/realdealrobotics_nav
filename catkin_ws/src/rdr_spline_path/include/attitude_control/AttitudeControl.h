@@ -27,7 +27,7 @@ class AttitudeControl
 {
 public:
 	AttitudeControl() {}
-	
+
 	/**
      * \brief Find closest spot on spline nearby previous position.  
 	 * \param spline: the spline
@@ -37,15 +37,17 @@ public:
 	 * \param splinePosition: Corresponding 3d location on the spline 
 	 */
 	bool findNearestPointOnSpline(const Eigen::Spline3d& spline, 
-		const double& prevU, const Eigen::Vector3d currentPosition, 
-		double& currentU, Eigen::Vector3d& splinePosition)
+		                          const double& prevU,
+                                  const Eigen::Vector3d currentPosition, 
+		                          double& currentU,
+                                  Eigen::Vector3d& splinePosition)
 	{
 		 
 	}
 
-    void calculate_spline_derivatives(const double& parameter_u)
+    void calculateSplineDerivatives(const double& parameter_u)
     {
-        Array<double, Eigen::Spline3d::Dimension, 3> derivatives = _spline.derivatives<SPLINE_DEGREE>(parameter_u);
+        Eigen::Array<double, Eigen::Spline3d::Dimension, 3> derivatives = _spline.derivatives<SPLINE_DEGREE>(parameter_u);
 
         _tangent_unit_vector = derivatives.col(1);
         _tangent_normal_vector = derivatives.col(2);
@@ -55,9 +57,9 @@ public:
      * \brief get curvature and max tangent speed from a spline.
      */
 	bool calculateMaximumTangentSpeed(const Eigen::Spline3d& spline,
-                                      const double& parameter_u, 
-		                              const double& curvature,
-                                      const double& max_tangent_speed)
+                                      const double& parameter_u,
+		                              double& curvature,
+                                      double& max_tangent_speed)
 	{
         calculate_spline_derivatives(parameter_u);
 
@@ -78,19 +80,19 @@ public:
 			max_tangent_speed = sqrt(_max_accel * curvature);
 			return true;
 		}
+
 		assert(false);
 		return false;
 	}
 
-    void calculate_tangential_accel_vector(const double& parameter_u)
+    void calculateTangentialAccelVector(const double& parameter_u)
     {
-
         double accel_magnitude = 0.;
 
         _tangenial_accel_vector = 
     }
 
-    Vector3d calculate_inertial_accel(const double& parameter_u)
+    Eigen::Vector3d calculateInertialAccel(const double& parameter_u)
     {
         Vector3d max_velocity = calculate_maximum_tangent_speed(parameter_u);
         calculate_tangential_accel_vector(parameter_u);
