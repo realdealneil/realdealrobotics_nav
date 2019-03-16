@@ -19,6 +19,20 @@ class RdrAttitudeControl
 public:
 	RdrAttitudeControl() {}
 	
+	/// \brief Find closest spot on spline nearby previous position.  
+	/**	\param spline: the spline
+	 * 	\param prevU: previous nearest u (we assume that we're making forward progress on the spline)
+	 * 	\param currentPosition: position of vehicle for which we want to find the u parameter
+	 * 	\param currentU: output 
+	 * 	\param splinePosition: Corresponding 3d location on the spline 
+	 */
+	bool findNearestPointOnSpline(const Eigen::Spline3d& spline, 
+		const double& prevU, const Eigen::Vector3d currentPosition, 
+		double& currentU, Eigen::Vector3d& splinePosition)
+	{
+		 
+	}
+	
 	/// \brief get curvature and max tangent speed from a spline
 	bool calculate_maximum_tangent_speed(const Eigen::Spline3d& spline, const double& parameter_u, 
 		double& curvature, double& max_tangent_speed)
