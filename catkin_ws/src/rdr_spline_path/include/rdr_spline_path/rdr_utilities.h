@@ -14,5 +14,8 @@
 #define RAD2DEG 180.0/M_PI
 #endif
 
+static constexpr double Gravity{9.80665};   // m/s
+static constexpr double _max_accel{5 * Gravity};   // 5 G's
+
 
 #endif // RDR_UTILITIES_H

@@ -20,6 +20,7 @@
 #include <vector>
 
 #include <pose_estimation/rdr_pose_estimation.h>
+#include <attitude_control/AttitudeControl.h>
 
 #include <ros/ros.h>
 
@@ -70,6 +71,9 @@ private:
 	poseEstimation _poseEstimator;
 	RdrPose _vehiclePose;
 	bool _poseValid = false;
+	
+	/// \brief Attitude Control class
+	RdrAttitudeControl _attitudeControl{};
 	
 };
 
