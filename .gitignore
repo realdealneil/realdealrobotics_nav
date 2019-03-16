@@ -1,2 +1,5 @@
+catkin_ws/build/*
+catkin_ws/devel/*
+splineTest1
 RealDealRobotics.sublime-project
 RealDealRobotics.sublime-workspace

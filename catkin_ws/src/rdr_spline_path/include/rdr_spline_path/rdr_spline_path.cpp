@@ -6,206 +6,80 @@
  */
 
 #include <rdr_spline_path/rdr_spline_path.h>
-
 #include <iostream>
 #include <vector>
-using namespace std;
 
-splineMaker::splineMaker()
-		: _nh("~")
-		, _integrator(200)
-		, _poseEstimator(_nh)
+splineMaker::splineMaker(const rdr_spline_path::GateLocationList& gate_location_list)
+		: nh_("~")
+		, integrator_(200)
+		, _poseEstimator(nh_)
+		, gate_location_list_(to_eigen(gate_location_list)) 
 {
-	//LoadParams();
 	
-	_gateCornerPub = _nh.advertise<visualization_msgs::MarkerArray>("gateCornerMarkers", 10);
+  rvizMarkerPub_ = nh_.advertise<visualization_msgs::MarkerArray>("gateCornerMarkers", 10);
 	
-	//! Get the list of gate corners:
-	_corner_vec = getGateCornerList();
-	_center_vec = getGateCenters(_corner_vec);
-	_gate_normals_vec = getGateNormals();
-	constructFrontPoints(3.0, _gate_front_points, _gate_back_points);
-	_primaryWaypoints = constructWaypointList();
-	
-	//! Make a spline!
-	MakeSplineFromWaypoints(_primaryWaypoints);
-	
-	CreateCornerMarkersForPublishing();
 }
 
-vector<gate_corners> splineMaker::getGateCornerList(void)
+void splineMaker::print_gate_list()
 {
-	// Here's the order: ['Gate10', 'Gate21', 'Gate2', 'Gate13', 'Gate9', 'Gate14', 'Gate1', 'Gate22', 'Gate15', 'Gate23', 'Gate6']
-	gate_corners gc;
-	vector<gate_corners> corner_vec;
-	
-	// Gate 10: [[18.15111, 3.631447, 7.229498], [16.35111, 3.63155, 7.229498], 
-	// [18.15111, 3.631447, 5.383497], [16.35111, 3.63155, 5.383497]]
-	gc.ul = Eigen::Vector3d(18.15111, 3.631447, 7.229498);
-	gc.ur = Eigen::Vector3d(18.15111, 3.631447, 5.383497);
-	gc.lr = Eigen::Vector3d(16.35111, 3.63155, 5.383497);
-	gc.ll = Eigen::Vector3d(16.35111, 3.63155, 7.229498);
-	corner_vec.push_back(gc);
-	
-	// gate 21: [[15.15353, 37.63426, 8.376249], [18.43008, 41.25023, 8.376249], [18.43008, 41.25023, 5.14875], [15.15353, 37.63426, 5.14875]]
-	gc.ul = Eigen::Vector3d(15.15353, 37.63426, 8.376249);
-	gc.ur = Eigen::Vector3d(18.43008, 41.25023, 8.376249);
-	gc.lr = Eigen::Vector3d(18.43008, 41.25023, 5.14875);
-	gc.ll = Eigen::Vector3d(15.15353, 37.63426, 5.14875);
-	corner_vec.push_back(gc);
-	
-	// gate 2: [[-0.2551794, 27.86797, 4.16025], [4.433571, 27.86797, 4.16025], [4.433571, 27.86797, 0.9327497], [-0.2551794, 27.86797, 0.9327497]]
-	gc.ul = Eigen::Vector3d(-0.2551794, 27.86797, 4.16025);
-	gc.ur = Eigen::Vector3d(4.433571, 27.86797, 4.16025);
-	gc.lr = Eigen::Vector3d(4.433571, 27.86797, 0.9327497);
-	gc.ll = Eigen::Vector3d(-0.2551794, 27.86797, 0.9327497);
-	corner_vec.push_back(gc);
-	
-	// gate 13: [[1.237332, 9.001728, 2.9625], [3.162332, 9.001728, 2.9625], [3.162332, 9.001728, 1.025], [1.237332, 9.001728, 1.025]]
-	gc.ul = Eigen::Vector3d(1.237332, 9.001728, 2.9625);
-	gc.ur = Eigen::Vector3d(3.162332, 9.001728, 2.9625);
-	gc.lr = Eigen::Vector3d(3.162332, 9.001728, 1.025);
-	gc.ll = Eigen::Vector3d(1.237332, 9.001728, 1.025);
-	corner_vec.push_back(gc);
+  for(int gate_index = 1; gate_index <= gate_location_list_.gates.size(); gate_index++)
+  {
+    std::cout << "Gate " << gate_index << std::endl;
 
-	// gate 9: [[-6.40867, -12.13678, 4.152941], [-8.208672, -12.13678, 4.152941], [-6.408669, -12.13678, 2.306941], [-8.208672, -12.13678, 2.306941]]
-	gc.ul = Eigen::Vector3d(-6.40867, -12.13678, 4.152941);
-	gc.ur = Eigen::Vector3d(-8.208672, -12.13678, 4.152941);
-	gc.lr = Eigen::Vector3d(-8.208672, -12.13678, 2.306941);
-	gc.ll = Eigen::Vector3d(-6.408669, -12.13678, 2.306941);
-	corner_vec.push_back(gc);
-
-	// gate 14: [[-10.4501, -31.31195, 4.25625], [-6.545984, -27.40784, 4.25625], [-6.545984, -27.40784, 1.02875], [-10.4501, -31.31195, 1.02875]]
-	gc.ul = Eigen::Vector3d(-10.4501, -31.31195, 4.25625);
-	gc.ur = Eigen::Vector3d(-6.545984, -27.40784, 4.25625);
-	gc.lr = Eigen::Vector3d(-6.545984, -27.40784, 1.02875);
-	gc.ll = Eigen::Vector3d(-10.4501, -31.31195, 1.02875);
-	corner_vec.push_back(gc);
-
-	// gate 1: [[-0.009000421, -32.9505, 3.071861], [-0.009000659, -34.8755, 3.071861], [-0.009000659, -34.8755, 1.134362], [-0.009000421, -32.9505, 1.134362]]
-	gc.ul = Eigen::Vector3d(-0.009000421, -32.9505, 3.071861);
-	gc.ur = Eigen::Vector3d(-0.009000659, -34.8755, 3.071861);
-	gc.lr = Eigen::Vector3d(-0.009000659, -34.8755, 1.134362);
-	gc.ll = Eigen::Vector3d(-0.009000421, -32.9505, 1.134362);
-	corner_vec.push_back(gc);
-
-	// gate 22: [[4.798321, -27.37053, 4.18125], [8.70332, -31.27553, 4.18125], [8.70332, -31.27553, 0.9537499], [4.798321, -27.37053, 0.9537499]]
-	gc.ul = Eigen::Vector3d(4.798321, -27.37053, 4.18125);
-	gc.ur = Eigen::Vector3d(8.70332, -31.27553, 4.18125);
-	gc.lr = Eigen::Vector3d(8.70332, -31.27553, 0.9537499);
-	gc.ll = Eigen::Vector3d(4.798321, -27.37053, 0.9537499);
-	corner_vec.push_back(gc);
-
-	// gate 15: [[5.744822, -11.79203, 4.16025], [8.75482, -11.79203, 4.16025], [8.75482, -11.79203, 0.9327497], [5.744822, -11.79203, 0.9327497]]
-	gc.ul = Eigen::Vector3d(5.744822, -11.79203, 4.16025);
-	gc.ur = Eigen::Vector3d(8.75482, -11.79203, 4.16025);
-	gc.lr = Eigen::Vector3d(8.75482, -11.79203, 0.9327497);
-	gc.ll = Eigen::Vector3d(5.744822, -11.79203, 0.9327497);
-	corner_vec.push_back(gc);
-
-	// gate 23: [[-9.328671, 7.773174, 2.942941], [-11.12867, 7.773277, 2.942941], [-9.328669, 7.773174, 1.096941], [-11.12867, 7.773277, 1.096941]]
-	gc.ul = Eigen::Vector3d(-9.328671, 7.773174, 2.942941);
-	gc.ur = Eigen::Vector3d(-11.12867, 7.773277, 2.942941);
-	gc.lr = Eigen::Vector3d(-11.12867, 7.773277, 1.096941);
-	gc.ll = Eigen::Vector3d(-9.328669, 7.773174, 1.096941);
-	corner_vec.push_back(gc);
-
-	// gate 6: [[-9.14867, 30.62316, 3.820941], [-10.94867, 30.62329, 3.820941], [-9.148668, 30.62316, 1.974941], [-10.94867, 30.62329, 1.974941]]
-	gc.ul = Eigen::Vector3d(-9.14867, 30.62316, 3.820941);
-	gc.ur = Eigen::Vector3d(-10.94867, 30.62329, 3.820941);
-	gc.lr = Eigen::Vector3d(-10.94867, 30.62329, 1.974941);
-	gc.ll = Eigen::Vector3d(-9.148668, 30.62316, 1.974941);
-	corner_vec.push_back(gc);
-	
-	return corner_vec;
+    const EigenGateLocation& egl = gate_location_list_.gates[gate_index - 1];
+    std::cout << "corners:\n" << egl.corners  
+      << "\n  perturbation bound: " << egl.perturbation_bound.transpose() 
+      << "\n  center: " << egl.center.transpose()
+      << "\n  normal: " << egl.normal.transpose()
+      << "\n  front: " << egl.front_point.transpose()
+      << "\n  back: " << egl.back_point.transpose() << std::endl;
+  }
 }
 
-Eigen::Vector3d splineMaker::find_center(gate_corners c)
-{
-	double avg_x = (c.ul(0) + c.ur(0) + c.lr(0) + c.ll(0))/4.0;
-	double avg_y = (c.ul(1) + c.ur(1) + c.lr(1) + c.ll(1))/4.0;
-	double avg_z = (c.ul(2) + c.ur(2) + c.lr(2) + c.ll(2))/4.0;
-	return Eigen::Vector3d(avg_x, avg_y, avg_z);
-}	
-
-vector<Eigen::Vector3d> splineMaker::getGateCenters(std::vector<gate_corners> corners)
-{
-	vector<Eigen::Vector3d> centers;
 	
-	for (int i=0; i<(int)corners.size(); i++)
-	{
-		Eigen::Vector3d center = find_center(corners.at(i));
-		centers.push_back(center);
-	}
-	return centers;
-}
-
-vector<Eigen::Vector3d> splineMaker::getGateNormals()
-{
-	//! For each gate, use the center and two corner points to figure out the normal to the plane:	
-	vector<Eigen::Vector3d> normals;
-	for (int i=0; i<(int)_center_vec.size(); i++)
-	{
-		Eigen::Vector3d normal;
-		Eigen::Vector3d Vec1 = _corner_vec[i].ul - _center_vec[i];
-		Eigen::Vector3d Vec2 = _corner_vec[i].ur - _center_vec[i];
-		normal = Vec1.cross(Vec2);	
-		normal.normalize();	
-		normals.push_back(normal);
-	}
-	return normals;
-}
-
-void splineMaker::constructFrontPoints(double d, vector<Eigen::Vector3d>& frontPoints, vector<Eigen::Vector3d>& backPoints)
-{
-	//! Make the front points: 
-	for (int i=0; i<(int)_center_vec.size(); i++)
-	{
-		Eigen::Vector3d fp = _center_vec[i] + d * _gate_normals_vec[i];
-		Eigen::Vector3d bp = _center_vec[i] - d * _gate_normals_vec[i];
-		frontPoints.push_back(fp);
-		backPoints.push_back(bp);
-	}
-}
 
 //! Construct waypoint list:
-std::vector<Eigen::Vector3d> splineMaker::constructWaypointList()
+WaypointList splineMaker::constructWaypointList(
+  const Eigen::Vector3d& vehicle_start_position, 
+  const GateList& gate_list)
 {
-	//! First, add the vehicle's start position:
 	std::vector<Eigen::Vector3d> wplist;
-	
-	//! Vehicle start location:
-	Eigen::Vector3d vehicle_start_point(0.0, 0, 0);	//! From challenge_hard.yaml file
-	wplist.push_back(vehicle_start_point);
+  
+  //! First, add the vehicle's start position:
+	wplist.push_back(vehicle_start_position);
 	
 	/** For each gate, figure out which point (front or back) is closest 
 	 * 	to the previous waypoint in the list.  Then, add the points:
 	 */
-	Eigen::Vector3d prev_point = vehicle_start_point;	
-	for (int i=0; i<(int)_center_vec.size(); i++)
+	const Eigen::Vector3d* prev_point = &vehicle_start_position;	//just to avoid copies...
+
+	for (size_t i = 0; i < gate_list.size(); i++)
 	{
-		Eigen::Vector3d v_prev_to_fp = _gate_front_points[i] - prev_point;
+		ROS_ASSERT(gate_list[i] <= gate_location_list_.gates.size());
+		const EigenGateLocation& current_gate = gate_location_list_.gates[gate_list[i]-1];
+
+		Eigen::Vector3d v_prev_to_fp = current_gate.front_point - *prev_point;
 		double dist_prev_to_fp = v_prev_to_fp.norm();
 		
-		Eigen::Vector3d v_prev_to_bp = _gate_back_points[i] - prev_point;
+		Eigen::Vector3d v_prev_to_bp = current_gate.back_point - *prev_point;
 		double dist_prev_to_bp = v_prev_to_bp.norm();
 		
 		if (dist_prev_to_fp < dist_prev_to_bp)
 		{
-			wplist.push_back(_gate_front_points[i]);
-			wplist.push_back(_center_vec[i]);
-			wplist.push_back(_gate_back_points[i]);
-			prev_point = _gate_back_points[i];
+			wplist.push_back(current_gate.front_point);
+			wplist.push_back(current_gate.center);
+			wplist.push_back(current_gate.back_point);
+			prev_point =  &current_gate.back_point;
 		} else {
-			wplist.push_back(_gate_back_points[i]);
-			wplist.push_back(_center_vec[i]);
-			wplist.push_back(_gate_front_points[i]);
-			prev_point = _gate_front_points[i];
+			wplist.push_back(current_gate.back_point);
+			wplist.push_back(current_gate.center);
+			wplist.push_back(current_gate.front_point);
+			prev_point = &current_gate.front_point;
 		}
 	}
 	
 	//! Ok, we should have the waypoint list constructed now!
-	cout << "Waypoint list is constructed!  There are " << _center_vec.size() << 
+	std::cout << "Waypoint list is constructed!  There are " << gate_list.size() << 
 		" gates and " << wplist.size() << " waypoints\n";
 		
 	//! Publish the waypoint path as line_strip markers in rviz:
@@ -230,17 +104,16 @@ std::vector<Eigen::Vector3d> splineMaker::constructWaypointList()
 		p.z = wplist[i](2);
 		waypoints.points.push_back(p);		
 	}	
-	_gateCornerMarkerArray.markers.push_back(waypoints);
-	
+	rvizMarkerArray_.markers.push_back(waypoints);
+			
 	return wplist;
 }
 
-void splineMaker::CreateCornerMarkersForPublishing()
+void splineMaker::SetCornerMarkersForPublishing(const GateList& gate_list)
 {
 	//! Publish points of first gate:		
 	
-	visualization_msgs::Marker gate_pts;
-	
+	visualization_msgs::Marker gate_pts;	
 	
 	gate_pts.header.frame_id = "world";
 	gate_pts.header.stamp = ros::Time::now();	
@@ -254,8 +127,14 @@ void splineMaker::CreateCornerMarkersForPublishing()
 	
 	
 	
-	for (int i=0; i<(int)_corner_vec.size(); i++)
-	{		
+	for (size_t i = 1; i <= gate_list.size(); i++)
+	{	
+		ROS_INFO("processing gate list index %lu of %lu. Gate %lu", i, 
+			gate_list.size(), gate_list[i-1]);
+			
+		ROS_ASSERT(gate_list[i-1] <= gate_location_list_.gates.size());
+		const EigenGateLocation& current_gate = gate_location_list_.gates[gate_list[i-1]-1];
+
 		visualization_msgs::Marker gate_lines;
 		gate_lines.header.frame_id = "world";
 		gate_lines.header.stamp = ros::Time::now();
@@ -270,55 +149,38 @@ void splineMaker::CreateCornerMarkersForPublishing()
 		gate_lines.id = i+1000;
 	
 		gate_pts.id = i;
-		geometry_msgs::Point p;
-		p.x = _corner_vec[i].ul(0);
-		p.y = _corner_vec[i].ul(1);
-		p.z = _corner_vec[i].ul(2);
+		geometry_msgs::Point p = to_ros_point(current_gate.corners.col(0));
 		gate_pts.points.push_back(p);
 		gate_lines.points.push_back(p);
-		p.x = _corner_vec[i].ur(0);
-		p.y = _corner_vec[i].ur(1);
-		p.z = _corner_vec[i].ur(2);
+
+		p = to_ros_point(current_gate.corners.col(1));
 		gate_pts.points.push_back(p);
 		gate_lines.points.push_back(p);
-		p.x = _corner_vec[i].lr(0);
-		p.y = _corner_vec[i].lr(1);
-		p.z = _corner_vec[i].lr(2);
-		gate_pts.points.push_back(p);
-		gate_lines.points.push_back(p);
-		p.x = _corner_vec[i].ll(0);
-		p.y = _corner_vec[i].ll(1);
-		p.z = _corner_vec[i].ll(2);	
-		gate_pts.points.push_back(p);
-		gate_lines.points.push_back(p);
-		p.x = _corner_vec[i].ul(0);
-		p.y = _corner_vec[i].ul(1);
-		p.z = _corner_vec[i].ul(2);
-		gate_lines.points.push_back(p);
-		// Center point:
-		p.x = _center_vec[i](0);
-		p.y = _center_vec[i](1);
-		p.z = _center_vec[i](2);
-		gate_pts.points.push_back(p);		
-		// Front point:
-		p.x = _gate_front_points[i](0);
-		p.y = _gate_front_points[i](1);
-		p.z = _gate_front_points[i](2);
-		gate_pts.points.push_back(p);
-		// back point:
-		p.x = _gate_back_points[i](0);
-		p.y = _gate_back_points[i](1);
-		p.z = _gate_back_points[i](2);
-		gate_pts.points.push_back(p);		
 		
-		_gateCornerMarkerArray.markers.push_back(gate_pts);
-		_gateCornerMarkerArray.markers.push_back(gate_lines);		
+		p = to_ros_point(current_gate.corners.col(3));
+		gate_pts.points.push_back(p);
+		gate_lines.points.push_back(p);
+
+		p = to_ros_point(current_gate.corners.col(2));
+		gate_pts.points.push_back(p);
+		gate_lines.points.push_back(p);
+
+		//close the gate box
+		gate_lines.points.push_back(to_ros_point(current_gate.corners.col(0)));
+
+		// add gate center, front and back points
+		gate_pts.points.push_back(to_ros_point(current_gate.center));
+		gate_pts.points.push_back(to_ros_point(current_gate.front_point));
+		gate_pts.points.push_back(to_ros_point(current_gate.back_point));		
+		
+		rvizMarkerArray_.markers.push_back(gate_pts);
+		rvizMarkerArray_.markers.push_back(gate_lines);		
 	}	
 }
 
-void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wplist)
+void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 {
-	cout << "Making spline from waypoint list. There are " << wplist.size() << " waypoints\n";
+	std::cout << "Making spline from waypoint list. There are " << wplist.size() << " waypoints\n";
 	
 	Eigen::MatrixXd wpMat(3, wplist.size());
 	for (int i=0; i<(int)wplist.size(); i++)
@@ -336,7 +198,7 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 	
 	//! Get values from the spline at a variety of points along the spline and add to the rviz display:
 	int num_sample_pts = 1000;
-	vector<Eigen::Vector3d> spline_pts;
+	std::vector<Eigen::Vector3d> spline_pts;
 	
 	for (int i=0; i<num_sample_pts+1; i++)
 	{
@@ -345,9 +207,9 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 		spline_pts.emplace_back(s(u));
 	}
 	
-	cout << "First Point: \n" << spline_pts[0] << "\n";
-	cout << "Halfway Point: \n" << spline_pts[500] << "\n";
-	cout << "End Point: \n" << spline_pts[1000] << "\n";
+	std::cout << "First Point: \n" << spline_pts[0] << "\n";
+	std::cout << "Halfway Point: \n" << spline_pts[500] << "\n";
+	std::cout << "End Point: \n" << spline_pts[1000] << "\n";
 	
 	//! Try to draw the spline using line markers in rviz:
 	//! Publish the waypoint path as line_strip markers in rviz:
@@ -366,18 +228,14 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 	
 	for (int i=0; i<(int)spline_pts.size(); i++)
 	{	
-		geometry_msgs::Point p;
-		p.x = spline_pts[i](0);
-		p.y = spline_pts[i](1);
-		p.z = spline_pts[i](2);
-		waypoints.points.push_back(p);		
+		waypoints.points.push_back(to_ros_point(spline_pts[i]));		
 	}	
-	_gateCornerMarkerArray.markers.push_back(waypoints);
+	rvizMarkerArray_.markers.push_back(waypoints);
 	
 	//! Integrate the spline:
-	Scalar spline_length = SplineIntegration<Eigen::Spline3d::Dimension>::Integrate(s, _integrator, (Scalar)0.0, (Scalar)1.0);
+	Scalar spline_length = SplineIntegration<Eigen::Spline3d::Dimension>::Integrate(s, integrator_, (Scalar)0.0, (Scalar)1.0);
 	
-	cout << "Spline length is: " << spline_length << "\n";
+	std::cout << "Spline length is: " << spline_length << "\n";
 	
 }
 
@@ -390,21 +248,9 @@ void splineMaker::Update()
 		_vehiclePose.p(0), _vehiclePose.p(1), _vehiclePose.p(2), 
 		_vehiclePose.rpy.roll*RAD2DEG, _vehiclePose.rpy.pitch*RAD2DEG, _vehiclePose.rpy.yaw*RAD2DEG); 
 	
-	_gateCornerPub.publish(_gateCornerMarkerArray);
+	rvizMarkerPub_.publish(rvizMarkerArray_);
 	
 }
 
-void splineMaker::LoadParams()
-{
-	std::cout << "LoadParams\n";
-	std::vector<double> temp12(12);
-	
-	_nh.getParam("/rdr_spline_path/Gate1/nominal_location", temp12);
-	
-	for (int i=0; i<12; i++)
-	{
-		std::cout << temp12[i] << "\n";
-	}
-}
 
 
