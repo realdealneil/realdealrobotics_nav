@@ -14,6 +14,7 @@ using namespace std;
 splineMaker::splineMaker()
 		: _nh("~")
 		, _integrator(200)
+		, _poseEstimator(_nh)
 {
 	//LoadParams();
 	
@@ -382,6 +383,13 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 
 void splineMaker::Update()
 {
+	//! Get the vehicle pose:
+	_poseValid = _poseEstimator.getVehiclePose(_vehiclePose);
+	
+	ROS_INFO_THROTTLE(0.5, "Vehicle Position: %f %f %f, RPY: %f %f %f",
+		_vehiclePose.p(0), _vehiclePose.p(1), _vehiclePose.p(2), 
+		_vehiclePose.rpy.roll*RAD2DEG, _vehiclePose.rpy.pitch*RAD2DEG, _vehiclePose.rpy.yaw*RAD2DEG); 
+	
 	_gateCornerPub.publish(_gateCornerMarkerArray);
 	
 }

@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
 	sensor_msgs
 	geometry_msgs	
 	visualization_msgs
+	eigen_conversions
+	tf_conversions
 )
 
 ## System dependencies are found with CMake's conventions
