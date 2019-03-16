@@ -41,9 +41,9 @@ vector<gate_corners> splineMaker::getGateCornerList(void)
 	// Gate 10: [[18.15111, 3.631447, 7.229498], [16.35111, 3.63155, 7.229498], 
 	// [18.15111, 3.631447, 5.383497], [16.35111, 3.63155, 5.383497]]
 	gc.ul = Eigen::Vector3d(18.15111, 3.631447, 7.229498);
-	gc.ur = Eigen::Vector3d(16.35111, 3.63155, 7.229498);
-	gc.lr = Eigen::Vector3d(18.15111, 3.631447, 5.383497);
-	gc.ll = Eigen::Vector3d(16.35111, 3.63155, 5.383497);
+	gc.ur = Eigen::Vector3d(18.15111, 3.631447, 5.383497);
+	gc.lr = Eigen::Vector3d(16.35111, 3.63155, 5.383497);
+	gc.ll = Eigen::Vector3d(16.35111, 3.63155, 7.229498);
 	corner_vec.push_back(gc);
 	
 	// gate 21: [[15.15353, 37.63426, 8.376249], [18.43008, 41.25023, 8.376249], [18.43008, 41.25023, 5.14875], [15.15353, 37.63426, 5.14875]]
@@ -374,7 +374,7 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 	_gateCornerMarkerArray.markers.push_back(waypoints);
 	
 	//! Integrate the spline:
-	Scalar spline_length = SplineIntegration<Eigen::Spline3d::Dimension>::Integrate(s, (Scalar)0.0, (Scalar)1.0, _integrator);
+	Scalar spline_length = SplineIntegration<Eigen::Spline3d::Dimension>::Integrate(s, _integrator, (Scalar)0.0, (Scalar)1.0);
 	
 	cout << "Spline length is: " << spline_length << "\n";
 	
