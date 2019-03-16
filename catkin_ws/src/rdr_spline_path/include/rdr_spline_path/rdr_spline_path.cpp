@@ -236,7 +236,7 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	//! Integrate the spline:
 	Scalar spline_length = SplineIntegration<Eigen::Spline3d::Dimension>::Integrate(_wpSpline, integrator_, (Scalar)0.0, (Scalar)1.0);
 	
-	std::cout << "Spline length is: " << spline_length << "\n";
+	_attitudeControl.SetSplineLength(spline_length);
 	
 	//! Test code from AttitudeControl:
 	double u=0.1;	

@@ -12,6 +12,7 @@
 #include <Eigen/Geometry>
 #include <unsupported/Eigen/Splines>
 #include <rdr_spline_path/rdr_utilities.h>
+#include <iostream>
 
 static constexpr int SPLINE_DEGREE{3};          // Spline degree is the polynomial order N + 1.
 
@@ -20,8 +21,6 @@ static constexpr double MAX_ACCEL{5 * GRAVITY}; // 5 G's
 
 static constexpr double MAX_SPEED{10.};         // m/s
 static constexpr double MIN_SPEED{0.};          // m/s
-
-
 
 class AttitudeControl
 {
@@ -32,6 +31,12 @@ public:
 	{
 		spline_ = s;
 	}
+	
+	void SetSplineLength(double l) 
+	{ 
+		spline_length_ = l; 
+		std::cout << "Spline length is: " << spline_length_ << "\n";
+	}	
 
 	/**
      * \brief Find closest spot on spline nearby previous position.  
@@ -47,10 +52,15 @@ public:
 		                          double& currentU,
                                   Eigen::Vector3d& splinePosition)
 	{
+		 //! Find the position at the previous U.  That's where we'll start searching:
+		 Eigen::Vector3d prevSplinePosition = spline(prevU);
 		 
-	}
-	
-	
+		 //! Start with a rough search along the spline.  Look 1/5 of the spline ahead, with an increment close to 1 m:
+		 double meter_increment = 1.0;
+		 double meter_search_dist = spline_length_/5.0;
+		 double u_increment = meter_increment/spline_length_;
+		 double u_search_dist = meter_search_dist/spline_length_;
+	}	
 
     void calculateSplineDerivatives(const double& parameter_u)
     {
@@ -125,5 +135,6 @@ private:
     Eigen::Vector3d _tangent_normal_vector{Eigen::Vector3d::Zero()};
     
     Eigen::Vector3d _gravity_vector{Eigen::Vector3d(0., 0., -GRAVITY)};
-
+    
+    double spline_length_ = 25.0;	//! Set this to minimize search speeds. 
 };
