@@ -69,7 +69,7 @@ private:
 	bool _poseValid = false;
 	
 	/// \brief Attitude Control class
-	RdrAttitudeControl _attitudeControl{};
+	AttitudeControl _attitudeControl{};
 };
 
 #endif // RDR_SPLINE_PATH_H

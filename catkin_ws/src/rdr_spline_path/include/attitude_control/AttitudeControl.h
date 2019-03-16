@@ -21,12 +21,17 @@ static constexpr double MAX_ACCEL{5 * GRAVITY}; // 5 G's
 static constexpr double MAX_SPEED{10.};         // m/s
 static constexpr double MIN_SPEED{0.};          // m/s
 
-static constexpr Eigen::Vector3d _gravity_vector{Eigen::Vector3d(0., 0., GRAVITY)};
+
 
 class AttitudeControl
 {
 public:
 	AttitudeControl() {}
+	
+	void SetSpline(const Eigen::Spline3d& s) 
+	{
+		spline_ = s;
+	}
 
 	/**
      * \brief Find closest spot on spline nearby previous position.  
@@ -44,10 +49,12 @@ public:
 	{
 		 
 	}
+	
+	
 
     void calculateSplineDerivatives(const double& parameter_u)
     {
-        Eigen::Array<double, Eigen::Spline3d::Dimension, 3> derivatives = _spline.derivatives<SPLINE_DEGREE>(parameter_u);
+        Eigen::MatrixXd derivatives = spline_.derivatives<SPLINE_DEGREE>(parameter_u);
 
         _tangent_unit_vector = derivatives.col(1);
         _tangent_normal_vector = derivatives.col(2);
@@ -56,21 +63,20 @@ public:
 	/**
      * \brief get curvature and max tangent speed from a spline.
      */
-	bool calculateMaximumTangentSpeed(const Eigen::Spline3d& spline,
-                                      const double& parameter_u,
+	bool calculateMaximumTangentSpeed(const double& parameter_u,
 		                              double& curvature,
                                       double& max_tangent_speed)
 	{
-        calculate_spline_derivatives(parameter_u);
+        calculateSplineDerivatives(parameter_u);
 
 		// Ensure perpendicularity to tangent vector.
-		_centripetal_acceleration = _tangent_unit_vector.cross(_tangent_normal_vector.cross(_tangent_unit_vector));
+		_centripetal_accel_vector = _tangent_unit_vector.cross(_tangent_normal_vector.cross(_tangent_unit_vector));
 		
 		max_tangent_speed = MAX_SPEED;
 
-		if (_centripetal_acceleration.norm() > 0)
+		if (_centripetal_accel_vector.norm() > 0)
 		{
-			_centripetal_acceleration.normalize();
+			_centripetal_accel_vector.normalize();
 
 			// k = |y' x y"| / ||y'^3||
 			curvature = _tangent_unit_vector.cross(_tangent_normal_vector).norm()
@@ -84,6 +90,8 @@ public:
 		assert(false);
 		return false;
 	}
+	
+	/*
 
     void calculateTangentialAccelVector(const double& parameter_u)
     {
@@ -106,13 +114,16 @@ public:
 
         return inertial_accel_vector;
     }
+    */
 
 private:
-
+	Eigen::Spline3d spline_;
     Eigen::Vector3d _centripetal_accel_vector{Eigen::Vector3d::Zero()};
     Eigen::Vector3d _inertial_accel_vector{Eigen::Vector3d::Zero()};
     Eigen::Vector3d _tangent_accel_vector{Eigen::Vector3d::Zero()};
     Eigen::Vector3d _tangent_unit_vector{Eigen::Vector3d::Zero()};
     Eigen::Vector3d _tangent_normal_vector{Eigen::Vector3d::Zero()};
+    
+    Eigen::Vector3d _gravity_vector{Eigen::Vector3d(0., 0., -GRAVITY)};
 
 };

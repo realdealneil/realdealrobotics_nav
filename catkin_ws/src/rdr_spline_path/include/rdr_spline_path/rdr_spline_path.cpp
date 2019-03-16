@@ -191,6 +191,7 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	//typedef Eigen::Spline<double, 3> spline3d;
 	
 	_wpSpline = Eigen::SplineFitting<Eigen::Spline3d>::Interpolate(wpMat, 3);
+	_attitudeControl.SetSpline(_wpSpline); 
 	//int dimension = 3;
 	//Eigen::Matrix<double, 3, 1> derivatives = s.derivatives(param, 1).col(1);
 	
@@ -241,7 +242,7 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	double u=0.1;	
 	double curvature = 0.0;
 	double max_tangent_speed = 0.0;
-	bool ret = _attitudeControl.calculate_maximum_tangent_speed(_wpSpline, u, curvature, max_tangent_speed);
+	bool ret = _attitudeControl.calculateMaximumTangentSpeed(u, curvature, max_tangent_speed);
 	
 	ROS_INFO("Computing curvature at u = %f: k = %f, maxSpeed = %f",
 		u, curvature, max_tangent_speed);
