@@ -18,56 +18,50 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
 #include <vector>
-
+#include <rdr_spline_path/GateLocationList.h>
+#include "eigen_helpers.h"
 #include <pose_estimation/rdr_pose_estimation.h>
 #include <attitude_control/AttitudeControl.h>
+#include <ros/ros.h> 
 
-#include <ros/ros.h>
-
-struct gate_corners {
-	Eigen::Vector3d ul;
-	Eigen::Vector3d ur;
-	Eigen::Vector3d lr;
-	Eigen::Vector3d ll;
-};
+using GateList = std::vector<size_t>; // list of gate indices
+using WaypointList = std::vector<Eigen::Vector3d>;
 
 class splineMaker
 {
 public:
-	splineMaker();
-	
-	void LoadParams();
+	splineMaker(const rdr_spline_path::GateLocationList& gate_location_list);
+
+
+	/**
+	 * 	Generate a sample spline path.  This is for testing the spline stuff in general:
+	 */
+	// expects the indexes in the gate_list to be 1 based!!
+	WaypointList sampleWaypointGenerator(const GateList& gate_list);
+	void print_gate_list();
 	
 	void Run60HzLoop();
 	void Run5HzLoop();	
-	
+
+	WaypointList constructWaypointList(
+		const Eigen::Vector3d& vehicle_start_position, 
+		const GateList& gatelist);
+	void MakeSplineFromWaypoints(const WaypointList& wplist);
+	void SetCornerMarkersForPublishing(const GateList& gate_list);
+
 private:
-	std::vector<gate_corners> getGateCornerList(void);
-	Eigen::Vector3d find_center(gate_corners c);
-	std::vector<Eigen::Vector3d> getGateCenters(std::vector<gate_corners> corners);
-	std::vector<Eigen::Vector3d> getGateNormals();
-	void constructFrontPoints(double d, std::vector<Eigen::Vector3d>& frontPoints, std::vector<Eigen::Vector3d>& backPoints);
-	
-	std::vector<Eigen::Vector3d> constructWaypointList();
-	void MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wplist);
-	
-	ros::NodeHandle _nh;
-	ros::Publisher _gateCornerPub;
-	visualization_msgs::MarkerArray _gateCornerMarkerArray;
-	void CreateCornerMarkersForPublishing();
-	
-	std::vector<gate_corners> _corner_vec;
-	std::vector<Eigen::Vector3d> _center_vec;
-	std::vector<Eigen::Vector3d> _gate_normals_vec;
-	std::vector<Eigen::Vector3d> _gate_front_points;
-	std::vector<Eigen::Vector3d> _gate_back_points;
-	
-	std::vector<Eigen::Vector3d> _primaryWaypoints;
+	ros::NodeHandle nh_;
+	ros::Publisher rvizMarkerPub_;
+	visualization_msgs::MarkerArray rvizMarkerArray_;
+	std::vector<Eigen::Vector3d> primaryWaypoints_;
 	
 	Eigen::Spline3d _wpSpline;
 	
 	/// \brief This integrator is used to integrate the spline
-	Eigen::Integrator<Scalar> _integrator;
+	Eigen::Integrator<Scalar> integrator_;
+	
+	// this is 0 based!!! 
+	EigenGateLocationList gate_location_list_;
 	
 	/// \brief Pose Estimator: gets pose from either tf or odometry:
 	poseEstimation _poseEstimator;
@@ -76,7 +70,6 @@ private:
 	
 	/// \brief Attitude Control class
 	RdrAttitudeControl _attitudeControl{};
-	
 };
 
 #endif // RDR_SPLINE_PATH_H
