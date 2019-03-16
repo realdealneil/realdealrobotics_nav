@@ -87,8 +87,7 @@ void splineMaker::SetCornerMarkersForPublishing(const GateList& gate_list)
 {
 	//! Publish points of first gate:		
 	
-	visualization_msgs::Marker gate_pts;
-	
+	visualization_msgs::Marker gate_pts;	
 	
 	gate_pts.header.frame_id = "world";
 	gate_pts.header.stamp = ros::Time::now();	
@@ -103,10 +102,12 @@ void splineMaker::SetCornerMarkersForPublishing(const GateList& gate_list)
 	
 	
 	for (size_t i = 1; i <= gate_list.size(); i++)
-	{	ROS_INFO("processing gate list index %lu of %lu. Gate %lu", i, 
-      gate_list.size(), gate_list[i-1]);
-    ROS_ASSERT(gate_list[i-1] <= gate_location_list_.gates.size());
-    const EigenGateLocation& current_gate = gate_location_list_.gates[gate_list[i-1]];
+	{	
+		ROS_INFO("processing gate list index %lu of %lu. Gate %lu", i, 
+			gate_list.size(), gate_list[i-1]);
+			
+		ROS_ASSERT(gate_list[i-1] <= gate_location_list_.gates.size());
+		const EigenGateLocation& current_gate = gate_location_list_.gates[gate_list[i-1]-1];
 
 		visualization_msgs::Marker gate_lines;
 		gate_lines.header.frame_id = "world";
@@ -126,24 +127,24 @@ void splineMaker::SetCornerMarkersForPublishing(const GateList& gate_list)
 		gate_pts.points.push_back(p);
 		gate_lines.points.push_back(p);
 
-    p = to_ros_point(current_gate.corners.col(1));
+		p = to_ros_point(current_gate.corners.col(1));
 		gate_pts.points.push_back(p);
 		gate_lines.points.push_back(p);
 		
-    p = to_ros_point(current_gate.corners.col(3));
+		p = to_ros_point(current_gate.corners.col(3));
 		gate_pts.points.push_back(p);
 		gate_lines.points.push_back(p);
 
-    p = to_ros_point(current_gate.corners.col(2));
+		p = to_ros_point(current_gate.corners.col(2));
 		gate_pts.points.push_back(p);
 		gate_lines.points.push_back(p);
 
-    //close the gate box
+		//close the gate box
 		gate_lines.points.push_back(to_ros_point(current_gate.corners.col(0)));
 
 		// add gate center, front and back points
 		gate_pts.points.push_back(to_ros_point(current_gate.center));
-  	gate_pts.points.push_back(to_ros_point(current_gate.front_point));
+		gate_pts.points.push_back(to_ros_point(current_gate.front_point));
 		gate_pts.points.push_back(to_ros_point(current_gate.back_point));		
 		
 		rvizMarkerArray_.markers.push_back(gate_pts);
