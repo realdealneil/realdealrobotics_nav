@@ -328,7 +328,7 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 	
 	//typedef Eigen::Spline<double, 3> spline3d;
 	
-	Eigen::Spline3d s = Eigen::SplineFitting<Eigen::Spline3d>::Interpolate(wpMat, 3);
+	_wpSpline = Eigen::SplineFitting<Eigen::Spline3d>::Interpolate(wpMat, 3);
 	//int dimension = 3;
 	//Eigen::Matrix<double, 3, 1> derivatives = s.derivatives(param, 1).col(1);
 	
@@ -342,7 +342,7 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 	{
 		double u = (double)i/(double)num_sample_pts;
 		
-		spline_pts.emplace_back(s(u));
+		spline_pts.emplace_back(_wpSpline(u));
 	}
 	
 	cout << "First Point: \n" << spline_pts[0] << "\n";
@@ -356,7 +356,7 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 	waypoints.header.frame_id = "world";
 	waypoints.header.stamp = ros::Time::now();
 	waypoints.id = 200;
-	waypoints.type = visualization_msgs::Marker::LINE_STRIP;
+	waypoints.type = visualization_msgs::Marker::POINTS;
 	waypoints.action = visualization_msgs::Marker::ADD;
 	waypoints.scale.x = 0.1;
 	waypoints.scale.y = 0.1;
@@ -375,17 +375,32 @@ void splineMaker::MakeSplineFromWaypoints(const std::vector<Eigen::Vector3d>& wp
 	_gateCornerMarkerArray.markers.push_back(waypoints);
 	
 	//! Integrate the spline:
-	Scalar spline_length = SplineIntegration<Eigen::Spline3d::Dimension>::Integrate(s, _integrator, (Scalar)0.0, (Scalar)1.0);
+	Scalar spline_length = SplineIntegration<Eigen::Spline3d::Dimension>::Integrate(_wpSpline, _integrator, (Scalar)0.0, (Scalar)1.0);
 	
 	cout << "Spline length is: " << spline_length << "\n";
 	
+	//! Test code from AttitudeControl:
+	double u=0.1;	
+	double curvature = 0.0;
+	double max_tangent_speed = 0.0;
+	bool ret = _attitudeControl.calculate_maximum_tangent_speed(_wpSpline, u, curvature, max_tangent_speed);
+	
+	ROS_INFO("Computing curvature at u = %f: k = %f, maxSpeed = %f",
+		u, curvature, max_tangent_speed);
+	
 }
 
-void splineMaker::Update()
+void splineMaker::Run60HzLoop()
 {
 	//! Get the vehicle pose:
 	_poseValid = _poseEstimator.getVehiclePose(_vehiclePose);
 	
+	
+	
+}
+
+void splineMaker::Run5HzLoop()
+{	
 	ROS_INFO_THROTTLE(0.5, "Vehicle Position: %f %f %f, RPY: %f %f %f",
 		_vehiclePose.p(0), _vehiclePose.p(1), _vehiclePose.p(2), 
 		_vehiclePose.rpy.roll*RAD2DEG, _vehiclePose.rpy.pitch*RAD2DEG, _vehiclePose.rpy.yaw*RAD2DEG); 

@@ -13,7 +13,6 @@
 #include <tf/transform_datatypes.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <tf_conversions/tf_eigen.h>
-//#include "LinearMath/btMatrix3x3.h"
 #include <rdr_spline_path/rdr_utilities.h>
 
 struct RdrRpy {

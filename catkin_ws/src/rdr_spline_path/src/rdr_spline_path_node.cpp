@@ -20,12 +20,20 @@ int main(int argc, char ** argv)
 	
 	splineMaker mySplineMaker;
 	
-	ros::Rate loop_rate(5);
+	ros::Rate loop_rate(60);
+	uint64_t loop_count = 0;
 	while (ros::ok())
-	{
-		mySplineMaker.Update();
+	{		
+		mySplineMaker.Run60HzLoop();
+		
+		if (loop_count % 12 == 0)
+		{
+			mySplineMaker.Run5HzLoop();
+		}
+		
 		ros::spinOnce();
 		loop_rate.sleep();
+		loop_count++;
 	}
 	
 	return 0;

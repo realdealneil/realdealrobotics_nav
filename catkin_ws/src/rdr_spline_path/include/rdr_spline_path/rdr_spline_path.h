@@ -38,10 +38,10 @@ public:
 	
 	void LoadParams();
 	
-	void Update();	
+	void Run60HzLoop();
+	void Run5HzLoop();	
 	
 private:
-
 	std::vector<gate_corners> getGateCornerList(void);
 	Eigen::Vector3d find_center(gate_corners c);
 	std::vector<Eigen::Vector3d> getGateCenters(std::vector<gate_corners> corners);
@@ -63,6 +63,8 @@ private:
 	std::vector<Eigen::Vector3d> _gate_back_points;
 	
 	std::vector<Eigen::Vector3d> _primaryWaypoints;
+	
+	Eigen::Spline3d _wpSpline;
 	
 	/// \brief This integrator is used to integrate the spline
 	Eigen::Integrator<Scalar> _integrator;
