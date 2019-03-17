@@ -2,11 +2,19 @@
 <launch>
   <arg name="gate_locations_file"
     default="$(find rdr_spline_path)/config/nominal_gate_locations_org.yaml" />
+  <!--arg name="perturbations_file"
+    default="$(find rdr_spline_path)/config/perturbations/perturbed_gates_0.yaml" /-->
   <arg name="challenge_gate_list"
-    default="$(find rdr_spline_path)/config/challenge_alphapilot_test3.yaml" />
+    default="$(find rdr_spline_path)/config/challenges/challenge_final.yaml" />
   
-  <node name="rdr_spline_path" pkg="rdr_spline_path" type="rdr_spline_path_node" output="screen">
+
+
+  <group ns="/uav">
     <rosparam command="load" file="$(arg gate_locations_file)"/>
+    <!--rosparam command="load" file="$(arg perturbations_file)"/-->
     <rosparam command="load" file="$(arg challenge_gate_list)"/>
+  </group>
+
+  <node name="rdr_spline_path" pkg="rdr_spline_path" type="rdr_spline_path_node" output="screen">
   </node>
 </launch>
