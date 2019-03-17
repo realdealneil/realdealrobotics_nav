@@ -5,7 +5,7 @@
   <!--arg name="perturbations_file"
     default="$(find rdr_spline_path)/config/perturbations/perturbed_gates_0.yaml" /-->
   <arg name="challenge_gate_list"
-    default="$(find rdr_spline_path)/config/challenge_alphapilot_test3.yaml" />
+    default="$(find rdr_spline_path)/config/challenges/challenge_final.yaml" />
   
 
 
