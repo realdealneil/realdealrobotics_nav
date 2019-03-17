@@ -120,7 +120,7 @@ public:
         // Ensure perpendicularity to tangent vector.
         centripetalAccelVector = tangentVector.cross(tangentNormalVector.cross(tangentVector));
         
-        double max_tangent_speed = MAX_SPEED;
+        double maxTangentSpeed = MAX_SPEED;
 
         if (centripetalAccelVector.norm() > 0)
         {
@@ -131,18 +131,15 @@ public:
                                / pow(tangentVector.norm(), 3.0);
 
             // a = v^2 / r   =>   v^2 * k   =>  v = sqrt(a / k)
-            max_tangent_speed = sqrt(_max_accel * curvature);
-            return max_tangent_speed;
+            maxTangentSpeed = std::min(sqrt(MAX_ACCEL * curvature), MAX_SPEED);
         }
 
-        //assert(false);
-        return 0.;
+        return maxTangentSpeed;
     }
 
     Eigen::Vector3d calculateDesiredAccelVector(const double& parameterU,
                                                 const double currentSpeed)
     {
-        double accel_magnitude = 0.;
         double speedError = calculateMaxTangentialSpeed(parameterU) - currentSpeed;
 
         double centripetalAccelMagnitude = (centripetalAccelVector + gravityVector).norm();
@@ -150,11 +147,11 @@ public:
         double tangentialAccelEffort = std::min((tangentAccelerationGain * speedError), maxTangentialAccelMagnitude);
 
         tangentialAccelVector *= tangentialAccelEffort;
-        inertialAccelVector = centripetalAccelVector + tangentialAccelVector + gravityVector;
+        inertialAccelVector = centripetalAccelVector + tangentialAccelVector - gravityVector;
 
         if (inertialAccelVector.norm() == 0.)
         {
-            inertialAccelVector = Eigen::Vector3d(0., 0., 0.0000001);
+            inertialAccelVector = Eigen::Vector3d(0., 0., -1.e-8); // A zero vector would result in an undefined orientation.
         }
 
         return inertialAccelVector;
@@ -172,7 +169,7 @@ private:
     
     double tangentAccelerationGain{1.}; // Proportional gain to tilt the trust vector.
     double previousClosestParam{0.};    // Previous closest spline parameter.
-    double curvature{0.0};
+    double curvature{0.};
     
     double splineLength{25.0};          //! Set this to minimize search speeds.
 };
