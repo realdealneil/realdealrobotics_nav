@@ -16,6 +16,9 @@
 using namespace rdr_spline_path;
 using namespace std;
 
+
+const std::string ns{"/uav"};
+
 GateLocationList importGateLocations(ros::NodeHandle &n) 
 {
   XmlRpc::XmlRpcValue cornerlist;
@@ -23,9 +26,8 @@ GateLocationList importGateLocations(ros::NodeHandle &n)
 
   GateLocationList gll;
 
-  const std::string& ns{"rdr_spline_path"}; 
-  const std::string& gate_location_key_name {"nominal_location"};
-  const std::string& perturbation_key_name {"perturbation_bound"};
+  const std::string gate_location_key_name{"nominal_location"};
+  const std::string perturbation_key_name{"perturbation_bound"};
 
   unsigned gate_index = 0;
   while(1)
@@ -74,7 +76,56 @@ GateLocationList importGateLocations(ros::NodeHandle &n)
   return gll;
 }
 
+GateList importGateList(ros::NodeHandle& n)
+{
+  GateList gl;
 
+  std::string gate_list_param{ns + "/gate_names"};
+
+  if (!n.hasParam(gate_list_param.c_str()))
+  {
+    return {};
+  }
+  std::vector<std::string> gate_names;
+  n.getParam(gate_list_param.c_str(), gate_names);
+
+  ROS_INFO("Importing %lu gate names", gate_names.size());
+
+  for(auto& gate_name : gate_names)
+  {
+    //erase first 4 chars and then convert to unsigned long
+    size_t gate_num = std::stoul(gate_name.erase(0,4));
+    gl.push_back(gate_num);
+    ROS_INFO("Added gate %lu", gate_num);
+  }
+  return gl;
+}
+
+geometry_msgs::Pose get_initial_pose(ros::NodeHandle& n)
+{
+  std::string init_pose_param{ns + "/flightgoggles_uav_dynamics/init_pose"};
+
+  if (!n.hasParam(init_pose_param.c_str()))
+  {
+    ROS_ERROR("Initial pose param: %s not found", init_pose_param.c_str());
+    return {};
+  }
+  std::vector<double> init_pose_vals;
+  n.getParam(init_pose_param.c_str(), init_pose_vals);
+
+  ROS_ASSERT(init_pose_vals.size() == 7);
+
+  geometry_msgs::Pose pose;
+  pose.position.x = init_pose_vals[0];
+  pose.position.y = init_pose_vals[1];
+  pose.position.z = init_pose_vals[2];
+  pose.orientation.x = init_pose_vals[3];
+  pose.orientation.y = init_pose_vals[4];
+  pose.orientation.z = init_pose_vals[5];
+  pose.orientation.w = init_pose_vals[6];
+
+  return pose;
+}
 
 int main(int argc, char ** argv)
 {
@@ -86,12 +137,14 @@ int main(int argc, char ** argv)
     mySplineMaker.print_gate_list();
 
     // Here's the order: ['Gate10', 'Gate21', 'Gate2', 'Gate13', 'Gate9', 'Gate14', 'Gate1', 'Gate22', 'Gate15', 'Gate23', 'Gate6']
-    GateList gate_list{10,21,2,13,9,14,1,22,15,23,6};
+    //GateList gate_list{10,21,2,13,9,14,1,22,15,23,6};
+    GateList gate_list = importGateList(n);
+    geometry_msgs::Pose initial_pose = get_initial_pose(n);
 
     mySplineMaker.SetCornerMarkersForPublishing(gate_list);
 
     WaypointList wplist = mySplineMaker.constructWaypointList(
-    Eigen::Vector3d{0,0,0}, gate_list);
+      to_eigen(initial_pose.position), gate_list);
 
     mySplineMaker.MakeSplineFromWaypoints(wplist);
 
