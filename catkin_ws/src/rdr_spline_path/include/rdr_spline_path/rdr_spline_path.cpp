@@ -9,6 +9,9 @@
 #include <iostream>
 #include <vector>
 
+using namespace std;
+using namespace Eigen;
+
 splineMaker::splineMaker(const rdr_spline_path::GateLocationList& gate_location_list)
 		: nh_("~")
 		, integrator_(200)
@@ -24,15 +27,15 @@ void splineMaker::print_gate_list()
 {
   for(int gate_index = 1; gate_index <= gate_location_list_.gates.size(); gate_index++)
   {
-    std::cout << "Gate " << gate_index << std::endl;
+    cout << "Gate " << gate_index << endl;
 
     const EigenGateLocation& egl = gate_location_list_.gates[gate_index - 1];
-    std::cout << "corners:\n" << egl.corners  
+    cout << "corners:\n" << egl.corners  
       << "\n  perturbation bound: " << egl.perturbation_bound.transpose() 
       << "\n  center: " << egl.center.transpose()
       << "\n  normal: " << egl.normal.transpose()
       << "\n  front: " << egl.front_point.transpose()
-      << "\n  back: " << egl.back_point.transpose() << std::endl;
+      << "\n  back: " << egl.back_point.transpose() << endl;
   }
 }
 
@@ -40,10 +43,10 @@ void splineMaker::print_gate_list()
 
 //! Construct waypoint list:
 WaypointList splineMaker::constructWaypointList(
-  const Eigen::Vector3d& vehicle_start_position, 
+  const Vector3d& vehicle_start_position, 
   const GateList& gate_list)
 {
-	std::vector<Eigen::Vector3d> wplist;
+	vector<Vector3d> wplist;
   
   //! First, add the vehicle's start position:
 	wplist.push_back(vehicle_start_position);
@@ -51,17 +54,17 @@ WaypointList splineMaker::constructWaypointList(
 	/** For each gate, figure out which point (front or back) is closest 
 	 * 	to the previous waypoint in the list.  Then, add the points:
 	 */
-	const Eigen::Vector3d* prev_point = &vehicle_start_position;	//just to avoid copies...
+	const Vector3d* prev_point = &vehicle_start_position;	//just to avoid copies...
 
 	for (size_t i = 0; i < gate_list.size(); i++)
 	{
 		ROS_ASSERT(gate_list[i] <= gate_location_list_.gates.size());
 		const EigenGateLocation& current_gate = gate_location_list_.gates[gate_list[i]-1];
 
-		Eigen::Vector3d v_prev_to_fp = current_gate.front_point - *prev_point;
+		Vector3d v_prev_to_fp = current_gate.front_point - *prev_point;
 		double dist_prev_to_fp = v_prev_to_fp.norm();
 		
-		Eigen::Vector3d v_prev_to_bp = current_gate.back_point - *prev_point;
+		Vector3d v_prev_to_bp = current_gate.back_point - *prev_point;
 		double dist_prev_to_bp = v_prev_to_bp.norm();
 		
 		if (dist_prev_to_fp < dist_prev_to_bp)
@@ -79,7 +82,7 @@ WaypointList splineMaker::constructWaypointList(
 	}
 	
 	//! Ok, we should have the waypoint list constructed now!
-	std::cout << "Waypoint list is constructed!  There are " << gate_list.size() << 
+	cout << "Waypoint list is constructed!  There are " << gate_list.size() << 
 		" gates and " << wplist.size() << " waypoints\n";
 		
 	//! Publish the waypoint path as line_strip markers in rviz:
@@ -180,26 +183,26 @@ void splineMaker::SetCornerMarkersForPublishing(const GateList& gate_list)
 
 void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 {
-	std::cout << "Making spline from waypoint list. There are " << wplist.size() << " waypoints\n";
+	cout << "Making spline from waypoint list. There are " << wplist.size() << " waypoints\n";
 	
-	Eigen::MatrixXd wpMat(3, wplist.size());
+	MatrixXd wpMat(3, wplist.size());
 	for (int i=0; i<(int)wplist.size(); i++)
 	{
 		wpMat.col(i) = wplist.at(i);
 	}
 	
-	//typedef Eigen::Spline<double, 3> spline3d;
+	//typedef Spline<double, 3> spline3d;
 	
-	_wpSpline = Eigen::SplineFitting<Eigen::Spline3d>::Interpolate(wpMat, 3);
+	_wpSpline = SplineFitting<Spline3d>::Interpolate(wpMat, 3);
 	_attitudeControl.SetSpline(_wpSpline); 
 	//int dimension = 3;
-	//Eigen::Matrix<double, 3, 1> derivatives = s.derivatives(param, 1).col(1);
+	//Matrix<double, 3, 1> derivatives = s.derivatives(param, 1).col(1);
 	
-	//spline3d s = Eigen::SplineFitting<spline3d>::InterpolateWithDerivatices(
+	//spline3d s = SplineFitting<spline3d>::InterpolateWithDerivatices(
 	
 	//! Get values from the spline at a variety of points along the spline and add to the rviz display:
 	int num_sample_pts = 1000;
-	std::vector<Eigen::Vector3d> spline_pts;
+	vector<Vector3d> spline_pts;
 	
 	for (int i=0; i<num_sample_pts+1; i++)
 	{
@@ -208,9 +211,9 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 		spline_pts.emplace_back(_wpSpline(u));
 	}
 	
-	std::cout << "First Point: \n" << spline_pts[0] << "\n";
-	std::cout << "Halfway Point: \n" << spline_pts[500] << "\n";
-	std::cout << "End Point: \n" << spline_pts[1000] << "\n";
+	cout << "First Point: \n" << spline_pts[0] << "\n";
+	cout << "Halfway Point: \n" << spline_pts[500] << "\n";
+	cout << "End Point: \n" << spline_pts[1000] << "\n";
 	
 	//! Try to draw the spline using line markers in rviz:
 	//! Publish the waypoint path as line_strip markers in rviz:
@@ -234,7 +237,8 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	rvizMarkerArray_.markers.push_back(waypoints);
 	
 	//! Integrate the spline:
-	Scalar spline_length = SplineIntegration<Eigen::Spline3d::Dimension>::Integrate(_wpSpline, integrator_, (Scalar)0.0, (Scalar)1.0);
+	Scalar spline_length = SplineIntegration<Spline3d::Dimension>::Integrate(
+		_wpSpline, integrator_, (Scalar)0.0, (Scalar)1.0);
 	
 	_attitudeControl.SetSplineLength(spline_length);
 	
@@ -245,6 +249,26 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	
 	ROS_INFO("Computing curvature at u = %f: k = %f, maxSpeed = %f",
 		u, _attitudeControl.getCurvature(), max_tangent_speed);
+		
+	/** Test the function for finding the closest point on the spline to 
+	 *  our current position:
+	 * 
+	 *  Pretend that the vehicle moves a slight distance forward, along 
+	 *  the spline, but not entirely on the spline.  
+	 */
+	Vector3d startPosition = _wpSpline(0.0);
+	double u2 = 0.001;
+	Vector3d newSplinePosition = _wpSpline(0.001);
+	Vector3d newPosition = newSplinePosition + Vector3d(0.0, 0.0, 0.5);
+	
+	cout << "Start Position: " << startPosition.transpose() 
+		<< "\n newSplinePos: " << newSplinePosition.transpose()
+		<< "\n newPosition: " << newPosition.transpose() 
+		<< "\n";
+		
+	double u2_hat = _attitudeControl.findClosestParam(newPosition);
+	
+	cout << "u2: " << u2 << " u2_hat: " << u2_hat << "\n";
 	
 }
 
