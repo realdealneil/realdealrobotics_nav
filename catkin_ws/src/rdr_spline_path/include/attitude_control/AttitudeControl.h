@@ -37,6 +37,8 @@ public:
         splineLength = length; 
         std::cout << "Spline length is: " << splineLength << "\n";
     }   
+    
+    double getCurvature(void) { return curvature; }
 
     /**
      * \brief Find closest spot on spline nearby previous position.
@@ -52,12 +54,13 @@ public:
 
         double distance = 0.;
         double startParam = previousClosestParam;
-        double minimumDistance = (currentPosition - (*this)(startParam)).norm();
+        
+        double minimumDistance = (currentPosition - Eigen::Vector3d(spline(startParam))).norm();
 
         for (unsigned int i = 1; i < discretePointsToCheck; ++i)
         {
             startParam += searchIncrement;
-            distance = (currentPosition - (*this)(startParam)).norm();
+            distance = (currentPosition - Eigen::Vector3d(spline(startParam))).norm();
             
             if (distance < minimumDistance)
             {
@@ -117,7 +120,7 @@ public:
         // Ensure perpendicularity to tangent vector.
         centripetalAccelVector = tangentVector.cross(tangentNormalVector.cross(tangentVector));
         
-        max_tangent_speed = MAX_SPEED;
+        double max_tangent_speed = MAX_SPEED;
 
         if (centripetalAccelVector.norm() > 0)
         {
@@ -132,7 +135,7 @@ public:
             return max_tangent_speed;
         }
 
-        assert(false);
+        //assert(false);
         return 0.;
     }
 
@@ -144,14 +147,14 @@ public:
 
         double centripetalAccelMagnitude = (centripetalAccelVector + gravityVector).norm();
         double maxTangentialAccelMagnitude = MAX_ACCEL - centripetalAccelMagnitude;
-        double tangentialAccelEffort = std::min((tangentAccelerationGain * speedError), maxTangentialAccelMagnitude)
+        double tangentialAccelEffort = std::min((tangentAccelerationGain * speedError), maxTangentialAccelMagnitude);
 
         tangentialAccelVector *= tangentialAccelEffort;
         inertialAccelVector = centripetalAccelVector + tangentialAccelVector + gravityVector;
 
         if (inertialAccelVector.norm() == 0.)
         {
-            inertialAccelVector = Vector3d(0., 0., 0.0000001);
+            inertialAccelVector = Eigen::Vector3d(0., 0., 0.0000001);
         }
 
         return inertialAccelVector;
@@ -169,5 +172,7 @@ private:
     
     double tangentAccelerationGain{1.}; // Proportional gain to tilt the trust vector.
     double previousClosestParam{0.};    // Previous closest spline parameter.
+    double curvature{0.0};
+    
     double splineLength{25.0};          //! Set this to minimize search speeds.
 };

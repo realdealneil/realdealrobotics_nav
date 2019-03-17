@@ -241,11 +241,10 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	//! Test code from AttitudeControl:
 	double u=0.1;	
 	double curvature = 0.0;
-	double max_tangent_speed = 0.0;
-	bool ret = _attitudeControl.calculateMaximumTangentSpeed(u, curvature, max_tangent_speed);
+	double max_tangent_speed = _attitudeControl.calculateMaxTangentialSpeed(u);
 	
 	ROS_INFO("Computing curvature at u = %f: k = %f, maxSpeed = %f",
-		u, curvature, max_tangent_speed);
+		u, _attitudeControl.getCurvature(), max_tangent_speed);
 	
 }
 
