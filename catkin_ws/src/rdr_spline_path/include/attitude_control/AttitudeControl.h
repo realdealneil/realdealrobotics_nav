@@ -27,12 +27,13 @@ class AttitudeControl
 public:
     AttitudeControl() {}
     
-    void SetSpline(const Eigen::Spline3d& newSpline) 
+    void setSpline(const Eigen::Spline3d& newSpline) 
     {
         spline = newSpline;
+        previousClosestParam = 0.0;
     }
     
-    void SetSplineLength(const double& length) 
+    void setSplineLength(const double& length) 
     { 
         splineLength = length; 
         std::cout << "Spline length is: " << splineLength << "\n";
@@ -42,14 +43,14 @@ public:
 
     /**
      * \brief Find closest spot on spline nearby previous position.
-     * \param currentPosition: position of vehicle for which we want to find the u parameter
-     * \return Returns the current closest parameter on the spline to the vehicle.
+     * @param currentPosition: position of vehicle for which we want to find the u parameter
+     * @return Returns the current closest parameter on the spline to the vehicle.
      */
     double findClosestParam(const Eigen::Vector3d currentPosition)
     {
         // Perform a rough search for closest spline parameter at given resolution to avoid local minimum.
         constexpr size_t discretePointsToCheck = 1000;
-        double searchDistMeters = 10.0;        
+        double searchDistMeters=10.0;
         double searchIncrement = (searchDistMeters/splineLength) / static_cast<double>(discretePointsToCheck);
         constexpr double searchThreshold = 1e-4;
 
@@ -57,27 +58,33 @@ public:
         double startParam = previousClosestParam;
         
         double minimumDistance = (currentPosition - Eigen::Vector3d(spline(startParam))).norm();
-        double u_closest = startParam;
+        double closestParam = startParam;
 
         for (unsigned int i = 1; i < discretePointsToCheck; ++i)
         {
             startParam += searchIncrement;
             if (startParam > 1.0)
 			{	
-				return -1.0;
+				return 1.0;
 			}	
             distance = (currentPosition - Eigen::Vector3d(spline(startParam))).norm();
             
             if (distance < minimumDistance)
             {
                 minimumDistance = distance;
-                u_closest = startParam;
+                closestParam = startParam;
             }
         }
         
-        return u_closest;
+		previousClosestParam = closestParam;
+        
+        return closestParam;
 
-        // Gradient search
+        /// Gradient search
+        
+        /**( I tried getting this to work, but didn't have much luck.  So, 
+         * 	I'm using the brute force approach above.  NGJ
+         */
         /*
         double closestParam = previousClosestParam;
         size_t counter = 0;
@@ -108,7 +115,14 @@ public:
         }*/
 
         //return -1;
-    }   
+    }
+    
+    double findLookAheadParam(double lookaheadDist_meters=1.0)
+    {
+		//! Get the param at a point roughly the lookahead distance along the spline:
+		double lookaheadDist_u = lookaheadDist_meters/splineLength;        
+        return previousClosestParam + lookaheadDist_u;
+    }
 
     Eigen::Vector3d calculateSplineDerivatives(const double& parameterU, const int derivativeDegree)
     {

@@ -194,7 +194,7 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	//typedef Spline<double, 3> spline3d;
 	
 	_wpSpline = SplineFitting<Spline3d>::Interpolate(wpMat, 3);
-	_attitudeControl.SetSpline(_wpSpline); 
+	_attitudeControl.setSpline(_wpSpline); 
 	//int dimension = 3;
 	//Matrix<double, 3, 1> derivatives = s.derivatives(param, 1).col(1);
 	
@@ -240,7 +240,7 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	Scalar spline_length = SplineIntegration<Spline3d::Dimension>::Integrate(
 		_wpSpline, integrator_, (Scalar)0.0, (Scalar)1.0);
 	
-	_attitudeControl.SetSplineLength(spline_length);
+	_attitudeControl.setSplineLength(spline_length);
 	
 	//! Test code from AttitudeControl:
 	double u=0.01;	
@@ -269,6 +269,16 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	
 	cout << "u: " << u << " u_hat: " << u_hat << "\n";
 	
+	//! Get the lookahead u and the corresponding point in space:
+	double u_carrot = _attitudeControl.findLookAheadParam(10.0);
+	
+	cout << "u_carrot: " << u_carrot << " Pos: " << Vector3d(_wpSpline(u_carrot)).transpose() << "\n";
+	
+	
+	/** We're done testing functions...reset the spline so that we start
+	 * 	at the beginning again:
+	 */	
+	_attitudeControl.setSpline(_wpSpline);	
 }
 
 void splineMaker::Run60HzLoop()
