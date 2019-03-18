@@ -48,11 +48,13 @@ public:
      */
     double findClosestParam(const Eigen::Vector3d currentPosition)
     {
-        // Perform a rough search for closest spline parameter at given resolution to avoid local minimum.
-        constexpr size_t discretePointsToCheck = 1000;
+		constexpr size_t discretePointsToCheck = 1000;
+		constexpr double searchThreshold = 1e-4;
+		/// Brute force version:
+		        
         double searchDistMeters=10.0;
         double searchIncrement = (searchDistMeters/splineLength) / static_cast<double>(discretePointsToCheck);
-        constexpr double searchThreshold = 1e-4;
+        
 
         double distance = 0.;
         double startParam = previousClosestParam;
@@ -60,6 +62,7 @@ public:
         double minimumDistance = (currentPosition - Eigen::Vector3d(spline(startParam))).norm();
         double closestParam = startParam;
 
+        // Search the entire spline for closest spline parameter at given resolution to find the global minimum.
         for (unsigned int i = 1; i < discretePointsToCheck; ++i)
         {
             startParam += searchIncrement;
@@ -79,42 +82,73 @@ public:
 		previousClosestParam = closestParam;
         
         return closestParam;
-
+    }
+    
+    /**
+     * \brief Find closest spot on spline nearby previous position.
+     * @param currentPosition: position of vehicle for which we want to find the u parameter
+     * @return Returns the current closest parameter on the spline to the vehicle.
+     */
+    double findClosestParamGradientDescent(const Eigen::Vector3d currentPosition)
+    {
+		constexpr size_t discretePointsToCheck = 1000;
+		constexpr double searchThreshold = 1e-4;
         /// Gradient search
         
         /**( I tried getting this to work, but didn't have much luck.  So, 
          * 	I'm using the brute force approach above.  NGJ
          */
-        /*
+        Eigen::MatrixXd derivatives          = Eigen::Vector3d::Zero();
+        Eigen::Vector3d vectorToParam        = Eigen::Vector3d::Zero();
+        Eigen::Vector3d tangentVectorAtParam = Eigen::Vector3d::Zero();
+        Eigen::Vector3d curvatureAtParam     = Eigen::Vector3d::Zero();
         double closestParam = previousClosestParam;
         size_t counter = 0;
-        
-        
 
+        // Gradient descent method to search for the local minimum..
         while (counter < discretePointsToCheck)
         {
-            Eigen::MatrixXd derivatives = spline.derivatives<SPLINE_DEGREE>(closestParam);
+            derivatives = spline.derivatives<SPLINE_DEGREE>(closestParam);
 
-            Eigen::Vector3d vectorToSpline = spline(closestParam).matrix() - currentPosition;
-            Eigen::Vector3d localTangentVector = derivatives.col(1);
-            //derivatives.col(0).matrix() - currentPosition;
+            vectorToParam        = (derivatives.col(0).matrix() - currentPosition).normalized();
+            tangentVectorAtParam = derivatives.col(1).matrix();
+            curvatureAtParam     = derivatives.col(2).matrix();
 
-            double numerator = localTangentVector.dot(vectorToSpline);
-            double denominator = (derivatives.col(2).matrix().dot(vectorToSpline) + std::pow(localTangentVector.norm(), 2.));
+            double searchGradient  = tangentVectorAtParam.normalized().dot(vectorToParam);
+            double searchIncrement = std::abs(curvatureAtParam.dot(vectorToParam) + pow(tangentVectorAtParam.norm(), 2.));
 
-            closestParam = std::max(std::min(previousClosestParam - numerator / denominator, 1.), 0.);
+/*
+			std::cout << "Iteration " << counter << "\n"
+				"     Prev pos on spline: " << spline(closestParam).matrix().transpose() << "\n"
+				"      Zeroth derivative: " << derivatives.col(0).matrix().transpose() << "\n"
+				"Tangent Vector at Param: " << tangentVectorAtParam.transpose() << "\n"
+				"          vectorToParam: " << vectorToParam.transpose() << "\n"
+				"                   grad: " << searchGradient << "\n"
+				"                    inc: " << searchIncrement << "\n"
+				"            delta param: " << searchGradient / searchIncrement << "\n";
+*/
 
-            if (((closestParam - previousClosestParam) * tangentVector).norm() < searchThreshold)
+            closestParam = previousClosestParam - searchGradient / searchIncrement;
+            
+            //std::cout << "  closestParam: " << closestParam << "\n";           
+
+            // Constrain within the bounds of the spline, (1,0), C++ 17 provides std::clamp() to accomplish this.
+            closestParam = std::max(std::min(closestParam, 1.), 0.);
+
+            // End the search if we are within our search threshold.
+            double criterion = ((closestParam - previousClosestParam) * tangentVectorAtParam).norm();
+            if (criterion < searchThreshold)
             {
-                previousClosestParam = closestParam;
-                std::cout << "Found closest param after " << counter << " iterations\n";
+                //std::cout << "Found closest param after " << counter << " iterations, " << criterion << "\n";
                 return closestParam;
-            }
+            }            
+            previousClosestParam = closestParam;
 
             counter++;
-        }*/
+            
+        }
 
-        //return -1;
+        return -1;
     }
     
     double findLookAheadParam(double lookaheadDist_meters=1.0)
