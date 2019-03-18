@@ -49,50 +49,65 @@ public:
     {
         // Perform a rough search for closest spline parameter at given resolution to avoid local minimum.
         constexpr size_t discretePointsToCheck = 1000;
-        constexpr double searchIncrement = 1. / static_cast<double>(discretePointsToCheck);
+        double searchDistMeters = 10.0;        
+        double searchIncrement = (searchDistMeters/splineLength) / static_cast<double>(discretePointsToCheck);
         constexpr double searchThreshold = 1e-4;
 
         double distance = 0.;
         double startParam = previousClosestParam;
         
         double minimumDistance = (currentPosition - Eigen::Vector3d(spline(startParam))).norm();
+        double u_closest = startParam;
 
         for (unsigned int i = 1; i < discretePointsToCheck; ++i)
         {
             startParam += searchIncrement;
+            if (startParam > 1.0)
+			{	
+				return -1.0;
+			}	
             distance = (currentPosition - Eigen::Vector3d(spline(startParam))).norm();
             
             if (distance < minimumDistance)
             {
                 minimumDistance = distance;
+                u_closest = startParam;
             }
         }
+        
+        return u_closest;
 
         // Gradient search
+        /*
         double closestParam = previousClosestParam;
         size_t counter = 0;
+        
+        
 
         while (counter < discretePointsToCheck)
         {
             Eigen::MatrixXd derivatives = spline.derivatives<SPLINE_DEGREE>(closestParam);
 
-            Eigen::Vector3d vectorToSpline = derivatives.col(0).matrix() - currentPosition;
+            Eigen::Vector3d vectorToSpline = spline(closestParam).matrix() - currentPosition;
+            Eigen::Vector3d localTangentVector = derivatives.col(1);
+            //derivatives.col(0).matrix() - currentPosition;
 
-            double numerator = tangentVector.dot(vectorToSpline);
-            double denominator = (derivatives.col(2).matrix().dot(vectorToSpline) + std::pow(tangentVector.norm(), 2.));
+            double numerator = localTangentVector.dot(vectorToSpline);
+            double denominator = (derivatives.col(2).matrix().dot(vectorToSpline) + std::pow(localTangentVector.norm(), 2.));
 
             closestParam = std::max(std::min(previousClosestParam - numerator / denominator, 1.), 0.);
 
             if (((closestParam - previousClosestParam) * tangentVector).norm() < searchThreshold)
             {
                 previousClosestParam = closestParam;
+                std::cout << "Found closest param after " << counter << " iterations\n";
                 return closestParam;
             }
 
             counter++;
-        }
+        }*/
 
-        return -1;
+        //return -1;
     }   
 
     Eigen::Vector3d calculateSplineDerivatives(const double& parameterU, const int derivativeDegree)

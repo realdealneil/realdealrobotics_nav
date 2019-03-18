@@ -243,7 +243,7 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	_attitudeControl.SetSplineLength(spline_length);
 	
 	//! Test code from AttitudeControl:
-	double u=0.1;	
+	double u=0.01;	
 	double curvature = 0.0;
 	double max_tangent_speed = _attitudeControl.calculateMaxTangentialSpeed(u);
 	
@@ -257,18 +257,17 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	 *  the spline, but not entirely on the spline.  
 	 */
 	Vector3d startPosition = _wpSpline(0.0);
-	double u2 = 0.001;
-	Vector3d newSplinePosition = _wpSpline(0.001);
-	Vector3d newPosition = newSplinePosition + Vector3d(0.0, 0.0, 0.5);
+	Vector3d newSplinePosition = _wpSpline(u);
+	Vector3d newPosition = newSplinePosition + Vector3d(0.00, 0.1, 0.0);
 	
 	cout << "Start Position: " << startPosition.transpose() 
 		<< "\n newSplinePos: " << newSplinePosition.transpose()
 		<< "\n newPosition: " << newPosition.transpose() 
 		<< "\n";
 		
-	double u2_hat = _attitudeControl.findClosestParam(newPosition);
+	double u_hat = _attitudeControl.findClosestParam(newPosition);
 	
-	cout << "u2: " << u2 << " u2_hat: " << u2_hat << "\n";
+	cout << "u: " << u << " u_hat: " << u_hat << "\n";
 	
 }
 
