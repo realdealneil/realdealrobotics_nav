@@ -286,6 +286,22 @@ void splineMaker::Run60HzLoop()
 	//! Get the vehicle pose:
 	_poseValid = _poseEstimator.getVehiclePose(_vehiclePose);
 	
+	double closestParam = _attitudeControl.findClosestParam(_vehiclePose.p);
+	
+	double lookaheadParam = _attitudeControl.findLookAheadParam(1.0);
+	
+	double currentSpeed = _vehiclePose.v.norm();
+	
+	Eigen::Vector3d desiredAccelVector = _attitudeControl.calculateDesiredAccelVector(
+		lookaheadParam, currentSpeed);
+		
+	Eigen::Matrix3d desiredBodyAxes = Eigen::Matrix3d::Zero();
+	desiredBodyAxes.row(0) = _attitudeControl.calculateSplineDerivatives(lookaheadParam, 1);
+	desiredBodyAxes.row(2) = desiredAccelVector;
+	desiredBodyAxes.row(1) = desiredBodyAxes.row(2).cross(desiredBodyAxes.row(0));
+	
+	
+	
 	
 	
 }
