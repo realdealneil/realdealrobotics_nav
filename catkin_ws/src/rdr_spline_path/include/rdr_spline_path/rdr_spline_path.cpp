@@ -300,6 +300,13 @@ void splineMaker::Run60HzLoop()
 	desiredBodyAxes.row(2) = desiredAccelVector;
 	desiredBodyAxes.row(1) = desiredBodyAxes.row(2).cross(desiredBodyAxes.row(0));
 	
+	double throttle_cmd = desiredAccelVector.norm(); // This may not be right, but it's a start
+	
+	//! Pseudocode the rest:
+	// Convert the desired body axes to a quaternion
+	// Compute error quaternion (desired composed with actual)
+	// Convert to angle-axis
+	// Generate control outputs proportional to angle-axis error
 	
 	
 	
