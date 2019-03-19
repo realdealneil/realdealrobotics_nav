@@ -17,7 +17,7 @@
 static constexpr int SPLINE_DEGREE{3};          // Spline degree is the polynomial order N + 1.
 
 static constexpr double GRAVITY{9.80665};       // m/s
-static constexpr double MAX_ACCEL{5 * GRAVITY}; // 5 G's
+static constexpr double MAX_ACCEL{5. * GRAVITY}; // 5 G's
 
 static constexpr double MAX_SPEED{10.};         // m/s
 static constexpr double MIN_SPEED{0.};          // m/s
