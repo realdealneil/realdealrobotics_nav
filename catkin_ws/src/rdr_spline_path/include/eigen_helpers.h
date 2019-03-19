@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 #include <rdr_spline_path/GateLocationList.h>
 
 
@@ -37,3 +38,8 @@ Eigen::Vector3d calc_gate_normal(const Eigen::Matrix<double,3,4>& corners,
 
 Eigen::Vector3d calc_gate_center_offset(double dist, 
   const Eigen::Vector3d& gate_center, const Eigen::Vector3d& gate_normal);
+
+Eigen::Quaterniond calc_quaternion_error(const Eigen::Quaterniond& act,
+  const Eigen::Quaterniond& des);
+
+Eigen::Vector3d to_angle_axis(const Eigen::Quaterniond& q);
