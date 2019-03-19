@@ -305,6 +305,17 @@ void splineMaker::Run60HzLoop()
 	//! Convert the desired body axes to a quaternion
 	Eigen::Quaterniond desiredBodyQuat = rotationToQuaternion(desiredBodyAxes);
 	
+	// TODO: Create functions in a library to do the following so we do it in a consistent manner:
+	//! Convert desired attitude to Euler angles for debugging:
+	//! Convert the transform quaternion to an Eigen Quaternion:
+	tf::Quaternion q_desired_tf;
+	tf::quaternionEigenToTF(desiredBodyQuat, q_desired_tf);
+	
+	//! Convert the quaternion to roll pitch yaw:
+	RdrRpy desiredRpy;				
+	tf::Matrix3x3(q_desired_tf).getEulerYPR(
+			desiredRpy.yaw, desiredRpy.pitch, desiredRpy.roll);			
+	
 	//! Compute error quaternion (desired composed with actual)
 	Eigen::Quaterniond error_quat = calc_quaternion_error(_vehiclePose.q,
 		desiredBodyQuat);
@@ -321,6 +332,16 @@ void splineMaker::Run60HzLoop()
 	rateThrustMsg.angular_rates.y = kp_rate_y * error_aa(1);
 	rateThrustMsg.angular_rates.z = kp_rate_z * error_aa(2);
 	rateThrustMsg.thrust.z = throttle_cmd;
+	
+	ROS_INFO_STREAM_THROTTLE(0.5,  
+		"Main Computations: \n"
+		"  Current Speed: " << currentSpeed << "\n"
+		"  Throttle Cmd: " << throttle_cmd << "\n"
+		"  desiredAccelVector: " << desiredAccelVector.transpose() << "\n"
+		"  tangentVectorAtLookAhead: " << tangentVectorAtLookahead.transpose() << "\n"
+		"  Desired Attitude: " << desiredRpy.roll*RAD2DEG << " " 
+			<< desiredRpy.pitch*RAD2DEG << " " <<  desiredRpy.yaw*RAD2DEG << "\n");
+		
 	
 	ROS_INFO_THROTTLE(0.5, "Commands: %f %f %f Thrust: %f", 
 		rateThrustMsg.angular_rates.x,

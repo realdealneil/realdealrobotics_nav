@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="use_external_renderer" default="0" />
-  <arg name="ignore_collisions" default="false" />
+  <arg name="use_external_renderer" default="1" />
+  <arg name="ignore_collisions" default="true" />
   <arg name="render_stereo" default="0" />
   <arg name="level" default="final" />
   <!--<arg name="gate_locations" default="0"/>-->

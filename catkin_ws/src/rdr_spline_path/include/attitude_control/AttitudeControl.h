@@ -13,6 +13,7 @@
 #include <unsupported/Eigen/Splines>
 #include <rdr_spline_path/rdr_utilities.h>
 #include <iostream>
+#include <ros/ros.h>
 
 static constexpr int SPLINE_DEGREE{3};          // Spline degree is the polynomial order N + 1.
 
@@ -203,10 +204,11 @@ public:
     Eigen::Vector3d calculateDesiredAccelVector(const double& parameterU,
                                                 const double currentSpeed)
     {
-        double speedError = calculateMaxTangentialSpeed(parameterU) - currentSpeed;
+		double maxTangentialSpeed = calculateMaxTangentialSpeed(parameterU);
+        double speedError = maxTangentialSpeed - currentSpeed;
 
-        double centripetalAccelMagnitude = (centripetalAccelVector + gravityVector).norm();
-        double maxTangentialAccelMagnitude = MAX_ACCEL - centripetalAccelMagnitude;
+        double inertialAccelMagnitude = (centripetalAccelVector + gravityVector).norm();
+        double maxTangentialAccelMagnitude = MAX_ACCEL - inertialAccelMagnitude;
         double tangentialAccelEffort = std::min((tangentAccelerationGain * speedError), maxTangentialAccelMagnitude);
 
         tangentialAccelVector *= tangentialAccelEffort;
@@ -216,6 +218,15 @@ public:
         {
             inertialAccelVector = Eigen::Vector3d(0., 0., -1.e-8); // A zero vector would result in an undefined orientation.
         }
+        
+        ROS_INFO_STREAM_THROTTLE(0.5, "calculateDesiredAccelVector\n"
+			"                 speedError: " << speedError << "\n"
+			"         maxTangentialSpeed: " << maxTangentialSpeed << "\n"
+			"  centripetalAccelMagnitude: " << centripetalAccelMagnitude << "\n"
+			"maxTangentialAccelMagnitude: " << maxTangentialAccelMagnitude << "\n"
+			"      tangentialAccelEffort: " << tangentialAccelEffort << "\n"
+			"      tangentialAccelVector: " << tangentialAccelVector.transpose() << "\n"
+			"        inertialAccelVector: " << inertialAccelVector.transpose() << "\n");
 
         return inertialAccelVector;
     }
