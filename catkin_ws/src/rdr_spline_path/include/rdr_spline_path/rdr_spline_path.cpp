@@ -18,9 +18,8 @@ splineMaker::splineMaker(const rdr_spline_path::GateLocationList& gate_location_
 		, _poseEstimator(nh_)
 		, gate_location_list_(to_eigen(gate_location_list)) 
 {
-	
   rvizMarkerPub_ = nh_.advertise<visualization_msgs::MarkerArray>("gateCornerMarkers", 10);
-	
+  rateThrustPub_ = nh_.advertise<mav_msgs::RateThrust>("/uav/input/rateThrust", 10);
 }
 
 void splineMaker::print_gate_list()
@@ -296,28 +295,47 @@ void splineMaker::Run60HzLoop()
 		lookaheadParam, currentSpeed);
 		
 	Eigen::Matrix3d desiredBodyAxes = Eigen::Matrix3d::Zero();
-	desiredBodyAxes.row(0) = _attitudeControl.calculateSplineDerivatives(lookaheadParam, 1);
-	desiredBodyAxes.row(2) = desiredAccelVector;
+	Eigen::Vector3d tangentVectorAtLookahead = _attitudeControl.calculateSplineDerivatives(lookaheadParam, 1);
+	desiredBodyAxes.row(0) = tangentVectorAtLookahead.normalized();
+	desiredBodyAxes.row(2) = desiredAccelVector.normalized();
 	desiredBodyAxes.row(1) = desiredBodyAxes.row(2).cross(desiredBodyAxes.row(0));
 	
 	double throttle_cmd = desiredAccelVector.norm(); // This may not be right, but it's a start
+		
+	//! Convert the desired body axes to a quaternion
+	Eigen::Quaterniond desiredBodyQuat = rotationToQuaternion(desiredBodyAxes);
 	
-	//! Pseudocode the rest:
-	// Convert the desired body axes to a quaternion
-	// Compute error quaternion (desired composed with actual)
-	// Convert to angle-axis
-	// Generate control outputs proportional to angle-axis error
+	//! Compute error quaternion (desired composed with actual)
+	Eigen::Quaterniond error_quat = calc_quaternion_error(_vehiclePose.q,
+		desiredBodyQuat);
 	
+	//! Convert to angle-axis
+	Eigen::Vector3d error_aa = to_angle_axis(error_quat);
 	
+	//! Generate control outputs proportional to angle-axis error
+	const double kp_rate_x=1.0;
+	const double kp_rate_y=1.0;
+	const double kp_rate_z=1.0;
+	mav_msgs::RateThrust rateThrustMsg;
+	rateThrustMsg.angular_rates.x = kp_rate_x * error_aa(0);
+	rateThrustMsg.angular_rates.y = kp_rate_y * error_aa(1);
+	rateThrustMsg.angular_rates.z = kp_rate_z * error_aa(2);
+	rateThrustMsg.thrust.z = throttle_cmd;
 	
+	ROS_INFO_THROTTLE(0.5, "Commands: %f %f %f Thrust: %f", 
+		rateThrustMsg.angular_rates.x,
+		rateThrustMsg.angular_rates.y,
+		rateThrustMsg.angular_rates.z,
+		rateThrustMsg.thrust.z);
 	
+	rateThrustPub_.publish(rateThrustMsg);
 }
 
 void splineMaker::Run5HzLoop()
 {	
-	ROS_INFO_THROTTLE(0.5, "Vehicle Position: %f %f %f, RPY: %f %f %f",
-		_vehiclePose.p(0), _vehiclePose.p(1), _vehiclePose.p(2), 
-		_vehiclePose.rpy.roll*RAD2DEG, _vehiclePose.rpy.pitch*RAD2DEG, _vehiclePose.rpy.yaw*RAD2DEG); 
+	//ROS_INFO_THROTTLE(0.5, "Vehicle Position: %f %f %f, RPY: %f %f %f",
+	//	_vehiclePose.p(0), _vehiclePose.p(1), _vehiclePose.p(2), 
+	//	_vehiclePose.rpy.roll*RAD2DEG, _vehiclePose.rpy.pitch*RAD2DEG, _vehiclePose.rpy.yaw*RAD2DEG); 
 	
 	rvizMarkerPub_.publish(rvizMarkerArray_);
 	

@@ -20,7 +20,7 @@ struct RdrRpy {
 	double pitch;
 	double yaw;
 };
-
+ 
 struct RdrPose {
 	
 	Eigen::Quaterniond q;

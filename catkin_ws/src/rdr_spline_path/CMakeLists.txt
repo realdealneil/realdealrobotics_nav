@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 	tf_conversions
 	nav_msgs
 	sensor_msgs
+	mav_msgs
 	geometry_msgs	
 	visualization_msgs
 	message_generation

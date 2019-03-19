@@ -22,6 +22,7 @@
 #include "eigen_helpers.h"
 #include <pose_estimation/rdr_pose_estimation.h>
 #include <attitude_control/AttitudeControl.h>
+#include <mav_msgs/RateThrust.h>
 #include <ros/ros.h> 
 
 using GateList = std::vector<size_t>; // list of gate indices
@@ -52,6 +53,7 @@ public:
 private:
 	ros::NodeHandle nh_;
 	ros::Publisher rvizMarkerPub_;
+	ros::Publisher rateThrustPub_;
 	visualization_msgs::MarkerArray rvizMarkerArray_;
 	std::vector<Eigen::Vector3d> primaryWaypoints_;
 	
