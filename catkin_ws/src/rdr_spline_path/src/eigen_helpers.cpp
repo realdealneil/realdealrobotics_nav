@@ -66,7 +66,10 @@ Eigen::Vector3d calc_gate_center_offset(double dist,
   return dist * gate_normal + gate_center;
 }
 
-// a - 
+// cur - current attitude quaternion
+// des - desired attitude quaternion
+// returns e- the quaternion that will rotate the vehicle from the current 
+// attitude to the desired attitude
 Eigen::Quaterniond calc_quaternion_error(const Eigen::Quaterniond& cur,
   const Eigen::Quaterniond& des)
 {

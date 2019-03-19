@@ -62,3 +62,4 @@ int main()
   return 0;
 }
 
+// g++ eigen_helpers_test.cpp eigen_helpers.cpp -o eigen_helpers_test -I/usr/local/include/eigen3/ -I../../../devel/include/ -I../include/ -I/opt/ros/kinetic/include/ -Wall -Wextra
