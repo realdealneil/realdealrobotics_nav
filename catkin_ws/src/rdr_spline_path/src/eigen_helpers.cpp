@@ -70,7 +70,7 @@ Eigen::Vector3d calc_gate_center_offset(double dist,
 // des - desired attitude quaternion
 // returns e- the quaternion that will rotate the vehicle from the current 
 // attitude to the desired attitude
-Eigen::Quaterniond calc_quaternion_error(const Eigen::Quaterniond& cur,
+/*Eigen::Quaterniond calc_quaternion_error(const Eigen::Quaterniond& cur,
   const Eigen::Quaterniond& des)
 {
   Eigen::Quaterniond e;
@@ -87,6 +87,13 @@ Eigen::Quaterniond calc_quaternion_error(const Eigen::Quaterniond& cur,
   }
   return e;
 }
+*/
+Eigen::Quaterniond calc_quaternion_error(const Eigen::Quaterniond& actual,
+  const Eigen::Quaterniond& desired)
+{
+  return (actual.conjugate() * desired).normalized();
+}
+
 
 Eigen::Vector3d to_angle_axis(const Eigen::Quaterniond& q)
 {

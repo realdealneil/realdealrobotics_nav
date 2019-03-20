@@ -62,6 +62,7 @@ inline void quaternionNormalize(Eigen::Vector4d& q) {
  *    The output quaternion will be in the form
  *      [q1, q2, q3, q4(scalar)]^T
  */
+/*
 inline Eigen::Quaterniond rotationToQuaternion(
     const Eigen::Matrix3d& R) 
 {
@@ -107,3 +108,4 @@ inline Eigen::Quaterniond rotationToQuaternion(
   
   return e;
 }
+* */

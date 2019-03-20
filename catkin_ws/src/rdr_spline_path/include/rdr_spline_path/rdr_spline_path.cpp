@@ -244,7 +244,7 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	//! Test code from AttitudeControl:
 	double u=0.01;	
 	double curvature = 0.0;
-	double max_tangent_speed = _attitudeControl.calculateMaxTangentialSpeed(u);
+	double max_tangent_speed = _attitudeControl.calculateMaxTangentialSpeed(u, 0.1);
 	
 	ROS_INFO("Computing curvature at u = %f: k = %f, maxSpeed = %f",
 		u, _attitudeControl.getCurvature(), max_tangent_speed);
@@ -296,14 +296,14 @@ void splineMaker::Run60HzLoop()
 		
 	Eigen::Matrix3d desiredBodyAxes = Eigen::Matrix3d::Zero();
 	Eigen::Vector3d tangentVectorAtLookahead = _attitudeControl.calculateSplineDerivatives(lookaheadParam, 1);
-	desiredBodyAxes.row(0) = tangentVectorAtLookahead.normalized();
-	desiredBodyAxes.row(2) = desiredAccelVector.normalized();
-	desiredBodyAxes.row(1) = desiredBodyAxes.row(2).cross(desiredBodyAxes.row(0));
+	desiredBodyAxes.col(0) = tangentVectorAtLookahead.normalized();
+	desiredBodyAxes.col(2) = desiredAccelVector.normalized();
+	desiredBodyAxes.col(1) = desiredBodyAxes.row(2).cross(desiredBodyAxes.row(0));
 	
 	double throttle_cmd = desiredAccelVector.norm(); // This may not be right, but it's a start
 		
 	//! Convert the desired body axes to a quaternion
-	Eigen::Quaterniond desiredBodyQuat = rotationToQuaternion(desiredBodyAxes);
+	Eigen::Quaterniond desiredBodyQuat(desiredBodyAxes);
 	
 	// TODO: Create functions in a library to do the following so we do it in a consistent manner:
 	//! Convert desired attitude to Euler angles for debugging:
@@ -333,6 +333,19 @@ void splineMaker::Run60HzLoop()
 	rateThrustMsg.angular_rates.z = kp_rate_z * error_aa(2);
 	rateThrustMsg.thrust.z = throttle_cmd;
 	
+	ROS_INFO_STREAM_THROTTLE(0.5, "\n"
+		"lookaheadParam: " << lookaheadParam << "\n"
+		"lookahead Pos:  " << Eigen::Vector3d(_wpSpline(lookaheadParam)).transpose() << "\n"
+		"tangentVectorAtLookahead.normalized(): " << tangentVectorAtLookahead.normalized().transpose() << "\n"
+		"desiredAccelVector.normalized(): " << desiredAccelVector.normalized().transpose() << "\n"
+	
+		"desiredBodyQuat.matrix().col(0):\n" << desiredBodyQuat.matrix().col(0) << "\n"
+		"tangentVectorAtLookahead: \n" << tangentVectorAtLookahead.normalized() << "\n"
+		"Dot product with tangent: \n" << (desiredBodyQuat.matrix().col(0)).dot(tangentVectorAtLookahead.normalized()) << "\n"
+		"Dot product with inertial:\n" << (desiredBodyQuat.matrix().col(2)).dot(desiredAccelVector.normalized()) << "\n"
+		);
+	
+	/*
 	ROS_INFO_STREAM_THROTTLE(0.5,  
 		"Main Computations: \n"
 		"  Current Speed: " << currentSpeed << "\n"
@@ -341,7 +354,7 @@ void splineMaker::Run60HzLoop()
 		"  tangentVectorAtLookAhead: " << tangentVectorAtLookahead.transpose() << "\n"
 		"  Desired Attitude: " << desiredRpy.roll*RAD2DEG << " " 
 			<< desiredRpy.pitch*RAD2DEG << " " <<  desiredRpy.yaw*RAD2DEG << "\n");
-		
+	*/
 	
 	ROS_INFO_THROTTLE(0.5, "Commands: %f %f %f Thrust: %f", 
 		rateThrustMsg.angular_rates.x,
@@ -354,9 +367,9 @@ void splineMaker::Run60HzLoop()
 
 void splineMaker::Run5HzLoop()
 {	
-	//ROS_INFO_THROTTLE(0.5, "Vehicle Position: %f %f %f, RPY: %f %f %f",
-	//	_vehiclePose.p(0), _vehiclePose.p(1), _vehiclePose.p(2), 
-	//	_vehiclePose.rpy.roll*RAD2DEG, _vehiclePose.rpy.pitch*RAD2DEG, _vehiclePose.rpy.yaw*RAD2DEG); 
+	ROS_INFO_THROTTLE(0.5, "Vehicle Position: %f %f %f, RPY: %f %f %f",
+		_vehiclePose.p(0), _vehiclePose.p(1), _vehiclePose.p(2), 
+		_vehiclePose.rpy.roll*RAD2DEG, _vehiclePose.rpy.pitch*RAD2DEG, _vehiclePose.rpy.yaw*RAD2DEG); 
 	
 	rvizMarkerPub_.publish(rvizMarkerArray_);
 	

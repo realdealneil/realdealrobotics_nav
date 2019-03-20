@@ -176,26 +176,28 @@ public:
      * \param parameterU The point of interest on the spline.
      * \param curvature The computed curvature at that point on the spline.
      */
-    double calculateMaxTangentialSpeed(const double& parameterU)
+    double calculateMaxTangentialSpeed(const double& parameterU, const double currentSpeed)
     {
         tangentVector = calculateSplineDerivatives(parameterU, 1);
         tangentNormalVector = calculateSplineDerivatives(parameterU, 2);
 
         // Ensure perpendicularity to tangent vector.
-        centripetalAccelVector = tangentVector.cross(tangentNormalVector.cross(tangentVector));
+        tangentNormalVector = tangentVector.cross(tangentNormalVector.cross(tangentVector));
         
-        double maxTangentSpeed = MAX_SPEED;
+        double maxTangentSpeed = 0.0;
 
-        if (centripetalAccelVector.norm() > 0)
+        if (tangentNormalVector.norm() > 0)
         {
-            centripetalAccelVector.normalize();
-
             // k = |y' x y"| / ||y'^3||
             curvature = tangentVector.cross(tangentNormalVector).norm()
                                / pow(tangentVector.norm(), 3.0);
 
             // a = v^2 / r   =>   v^2 * k   =>  v = sqrt(a / k)
-            maxTangentSpeed = std::min(sqrt(MAX_ACCEL * curvature), MAX_SPEED);
+            maxTangentSpeed = std::min(sqrt(MAX_ACCEL / curvature), MAX_SPEED);
+            
+            double speed = std::max(currentSpeed, 5.0);
+            
+            centripetalAccelVector = speed * speed * curvature * tangentNormalVector.normalized();
         }
 
         return maxTangentSpeed;
@@ -204,14 +206,14 @@ public:
     Eigen::Vector3d calculateDesiredAccelVector(const double& parameterU,
                                                 const double currentSpeed)
     {
-		double maxTangentialSpeed = calculateMaxTangentialSpeed(parameterU);
+		double maxTangentialSpeed = calculateMaxTangentialSpeed(parameterU, currentSpeed);
         double speedError = maxTangentialSpeed - currentSpeed;
 
         double inertialAccelMagnitude = (centripetalAccelVector + gravityVector).norm();
         double maxTangentialAccelMagnitude = MAX_ACCEL - inertialAccelMagnitude;
         double tangentialAccelEffort = std::min((tangentAccelerationGain * speedError), maxTangentialAccelMagnitude);
 
-        tangentialAccelVector *= tangentialAccelEffort;
+        tangentialAccelVector = tangentVector.normalized() * tangentialAccelEffort;
         inertialAccelVector = centripetalAccelVector + tangentialAccelVector - gravityVector;
 
         if (inertialAccelVector.norm() == 0.)
@@ -222,11 +224,13 @@ public:
         ROS_INFO_STREAM_THROTTLE(0.5, "calculateDesiredAccelVector\n"
 			"                 speedError: " << speedError << "\n"
 			"         maxTangentialSpeed: " << maxTangentialSpeed << "\n"
-			"  centripetalAccelMagnitude: " << centripetalAccelMagnitude << "\n"
+			"     inertialAccelMagnitude: " << inertialAccelMagnitude << "\n"
+			"     centripetalAccelVector: " << centripetalAccelVector.transpose() << "\n"
 			"maxTangentialAccelMagnitude: " << maxTangentialAccelMagnitude << "\n"
 			"      tangentialAccelEffort: " << tangentialAccelEffort << "\n"
 			"      tangentialAccelVector: " << tangentialAccelVector.transpose() << "\n"
-			"        inertialAccelVector: " << inertialAccelVector.transpose() << "\n");
+			"        inertialAccelVector: " << inertialAccelVector.transpose() << "\n"
+			);
 
         return inertialAccelVector;
     }
