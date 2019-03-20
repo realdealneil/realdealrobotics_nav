@@ -28,6 +28,19 @@
 using GateList = std::vector<size_t>; // list of gate indices
 using WaypointList = std::vector<Eigen::Vector3d>;
 
+enum FlightMode {
+	MODE_IDLE = 0,
+	MODE_TAKEOFF,
+	MODE_FOLLOW_SPLINE,
+	MODE_HOVER,
+	NUM_MODES
+};
+
+inline double ms_time(void)
+{
+	return ros::Time::now().toSec()*1000.0;
+}
+
 class splineMaker
 {
 public:
@@ -51,11 +64,16 @@ public:
 	void SetCornerMarkersForPublishing(const GateList& gate_list);
 
 private:
+	mav_msgs::RateThrust GetCmdsToFollowSpline(void);
+	mav_msgs::RateThrust TakeOffMode(void);
+
 	ros::NodeHandle nh_;
 	ros::Publisher rvizMarkerPub_;
 	ros::Publisher rateThrustPub_;
 	visualization_msgs::MarkerArray rvizMarkerArray_;
 	std::vector<Eigen::Vector3d> primaryWaypoints_;
+	
+	double startTime_ms;
 	
 	Eigen::Spline3d _wpSpline;
 	
@@ -70,8 +88,12 @@ private:
 	RdrPose _vehiclePose;
 	bool _poseValid = false;
 	
+	FlightMode flightMode_ = FlightMode::MODE_TAKEOFF;
+	
 	/// \brief Attitude Control class
 	AttitudeControl _attitudeControl{};
+	
+	Eigen::Vector3d start_position_;
 };
 
 #endif // RDR_SPLINE_PATH_H

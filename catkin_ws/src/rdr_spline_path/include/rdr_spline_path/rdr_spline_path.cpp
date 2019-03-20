@@ -18,6 +18,7 @@ splineMaker::splineMaker(const rdr_spline_path::GateLocationList& gate_location_
 		, _poseEstimator(nh_)
 		, gate_location_list_(to_eigen(gate_location_list)) 
 {
+  startTime_ms = ms_time();
   rvizMarkerPub_ = nh_.advertise<visualization_msgs::MarkerArray>("gateCornerMarkers", 10);
   rateThrustPub_ = nh_.advertise<mav_msgs::RateThrust>("/uav/input/rateThrust", 10);
 }
@@ -46,6 +47,8 @@ WaypointList splineMaker::constructWaypointList(
   const GateList& gate_list)
 {
 	vector<Vector3d> wplist;
+	
+	start_position_ = vehicle_start_position;
   
   //! First, add the vehicle's start position:
 	wplist.push_back(vehicle_start_position);
@@ -280,11 +283,8 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	_attitudeControl.setSpline(_wpSpline);	
 }
 
-void splineMaker::Run60HzLoop()
+mav_msgs::RateThrust splineMaker::GetCmdsToFollowSpline(void)
 {
-	//! Get the vehicle pose:
-	_poseValid = _poseEstimator.getVehiclePose(_vehiclePose);
-	
 	double closestParam = _attitudeControl.findClosestParam(_vehiclePose.p);
 	
 	double lookaheadParam = _attitudeControl.findLookAheadParam(1.0);
@@ -333,6 +333,7 @@ void splineMaker::Run60HzLoop()
 	rateThrustMsg.angular_rates.z = kp_rate_z * error_aa(2);
 	rateThrustMsg.thrust.z = throttle_cmd;
 	
+	/*
 	ROS_INFO_STREAM_THROTTLE(0.5, "\n"
 		"lookaheadParam: " << lookaheadParam << "\n"
 		"lookahead Pos:  " << Eigen::Vector3d(_wpSpline(lookaheadParam)).transpose() << "\n"
@@ -344,7 +345,7 @@ void splineMaker::Run60HzLoop()
 		"Dot product with tangent: \n" << (desiredBodyQuat.matrix().col(0)).dot(tangentVectorAtLookahead.normalized()) << "\n"
 		"Dot product with inertial:\n" << (desiredBodyQuat.matrix().col(2)).dot(desiredAccelVector.normalized()) << "\n"
 		);
-	
+	*/
 	/*
 	ROS_INFO_STREAM_THROTTLE(0.5,  
 		"Main Computations: \n"
@@ -355,14 +356,98 @@ void splineMaker::Run60HzLoop()
 		"  Desired Attitude: " << desiredRpy.roll*RAD2DEG << " " 
 			<< desiredRpy.pitch*RAD2DEG << " " <<  desiredRpy.yaw*RAD2DEG << "\n");
 	*/
-	
+	/*
 	ROS_INFO_THROTTLE(0.5, "Commands: %f %f %f Thrust: %f", 
 		rateThrustMsg.angular_rates.x,
 		rateThrustMsg.angular_rates.y,
 		rateThrustMsg.angular_rates.z,
 		rateThrustMsg.thrust.z);
+	*/
 	
-	rateThrustPub_.publish(rateThrustMsg);
+	return rateThrustMsg;
+}
+
+mav_msgs::RateThrust splineMaker::TakeOffMode(void)
+{
+	
+	double takeoff_alt = 1.0;
+	
+	Eigen::Vector3d desiredPosition = start_position_ + Eigen::Vector3d(0, 0, takeoff_alt);
+	
+	Eigen::Vector3d positionError = desiredPosition - _vehiclePose.p;
+	
+	//! Try to achieve a desired velocity:
+	
+	double desiredClimbRate = 1.0 * positionError(2);
+	
+	/*double secondsSinceStart = (ms_time() - startTime_ms)*0.001;
+	
+	if (secondsSinceStart > 0  && secondsSinceStart < 5.0)
+	{
+		desiredClimbRate = 0.0;
+	}
+	else if (secondsSinceStart >= 5.0 && secondsSinceStart < 10.0)
+	{
+		desiredClimbRate = 2.0;
+	}
+	else if (secondsSinceStart >= 10.0 && secondsSinceStart < 15.0)
+	{
+		desiredClimbRate = 0.0;
+	}
+	else if (secondsSinceStart >= 15.0 && secondsSinceStart < 20.0)
+	{
+		desiredClimbRate = -2.0;
+	} 
+	else 
+	{
+		desiredClimbRate = 0.0;  
+		startTime_ms = ms_time();
+	}	*/
+	
+	double actualClimbRate = _vehiclePose.v(2);
+	
+	double climbRateError = desiredClimbRate - actualClimbRate;
+	
+	
+	
+	//! Command acceleration proportional to position error:
+	mav_msgs::RateThrust takeoffCmd;
+	takeoffCmd.thrust.z = 2.0 * climbRateError + GRAVITY;
+	
+	//TODO: compute desired attitude to achieve hover:
+	ROS_INFO_THROTTLE(0.25, "Desired Climb Rate: %f, Error: %f cmd: %f",
+		desiredClimbRate, climbRateError, takeoffCmd.thrust.z);
+		
+	return takeoffCmd;	
+}
+
+void splineMaker::Run60HzLoop()
+{
+	//! Get the vehicle pose:
+	_poseValid = _poseEstimator.getVehiclePose(_vehiclePose);
+	
+	mav_msgs::RateThrust cmds;
+	cmds.angular_rates.x = 0.0;
+	cmds.angular_rates.y = 0.0;
+	cmds.angular_rates.z = 0.0;
+	cmds.thrust.z = GRAVITY;
+	
+	switch(flightMode_)
+	{
+		default:
+		case MODE_IDLE:
+			break;
+		case MODE_TAKEOFF:
+			cmds = TakeOffMode();
+			break;
+		case MODE_FOLLOW_SPLINE:
+			cmds = GetCmdsToFollowSpline();
+			break;
+		case MODE_HOVER:
+			break;
+	}	
+	
+	rateThrustPub_.publish(cmds);
 }
 
 void splineMaker::Run5HzLoop()

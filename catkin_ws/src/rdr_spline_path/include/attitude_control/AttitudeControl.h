@@ -221,6 +221,7 @@ public:
             inertialAccelVector = Eigen::Vector3d(0., 0., -1.e-8); // A zero vector would result in an undefined orientation.
         }
         
+        /*
         ROS_INFO_STREAM_THROTTLE(0.5, "calculateDesiredAccelVector\n"
 			"                 speedError: " << speedError << "\n"
 			"         maxTangentialSpeed: " << maxTangentialSpeed << "\n"
@@ -231,6 +232,7 @@ public:
 			"      tangentialAccelVector: " << tangentialAccelVector.transpose() << "\n"
 			"        inertialAccelVector: " << inertialAccelVector.transpose() << "\n"
 			);
+			**/
 
         return inertialAccelVector;
     }
@@ -250,4 +252,6 @@ private:
     double curvature{0.};
     
     double splineLength{25.0};          //! Set this to minimize search speeds.
+    
+    double startTime;
 };
