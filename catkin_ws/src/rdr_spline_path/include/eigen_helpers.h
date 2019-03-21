@@ -53,6 +53,24 @@ inline void quaternionNormalize(Eigen::Vector4d& q) {
   return;
 }
 
+inline Eigen::Quaterniond EulerToQuat(double phi, double theta, double psi)
+{
+	Eigen::Quaterniond qphi;
+	Eigen::Quaterniond qtheta;
+	Eigen::Quaterniond qpsi;
+	qphi.w() = cos(phi/2.0);
+	qphi.vec() = Eigen::Vector3d(sin(phi/2.0), 0.0, 0.0);
+	
+	qtheta.w() = cos(theta/2.0);
+	qtheta.vec() = Eigen::Vector3d(0.0, sin(theta/2.0), 0.0);
+	
+	qpsi.w() = cos(psi/2.0);
+	qpsi.vec() = Eigen::Vector3d(0.0, 0.0, sin(psi/2.0));
+	
+	Eigen::Quaterniond result = qpsi * qtheta * qphi;
+	return result;	
+}
+
 /*
  * @brief Convert a rotation matrix to a quaternion.
  * @note Pay attention to the convention used. The function follows the

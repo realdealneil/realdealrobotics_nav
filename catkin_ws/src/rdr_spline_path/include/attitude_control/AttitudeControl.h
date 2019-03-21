@@ -176,7 +176,8 @@ public:
      * \param parameterU The point of interest on the spline.
      * \param curvature The computed curvature at that point on the spline.
      */
-    double calculateMaxTangentialSpeed(const double& parameterU, const double currentSpeed)
+    double calculateMaxTangentialSpeed(const double& parameterU, 
+		const double desiredSpeed, const double currentSpeed)
     {
         tangentVector = calculateSplineDerivatives(parameterU, 1);
         tangentNormalVector = calculateSplineDerivatives(parameterU, 2);
@@ -195,18 +196,21 @@ public:
             // a = v^2 / r   =>   v^2 * k   =>  v = sqrt(a / k)
             maxTangentSpeed = std::min(sqrt(MAX_ACCEL / curvature), MAX_SPEED);
             
-            double speed = std::max(currentSpeed, 5.0);
+            centripetalAccelVector = desiredSpeed * desiredSpeed * curvature * tangentNormalVector.normalized();
             
-            centripetalAccelVector = speed * speed * curvature * tangentNormalVector.normalized();
+            ROS_INFO_THROTTLE(0.25, "curvature: %f, centripetalAccelVector: %f %f %f",
+				curvature, centripetalAccelVector(0), centripetalAccelVector(1), centripetalAccelVector(2));
         }
 
         return maxTangentSpeed;
     }
 
     Eigen::Vector3d calculateDesiredAccelVector(const double& parameterU,
+												const double desiredSpeed,
                                                 const double currentSpeed)
     {
-		double maxTangentialSpeed = calculateMaxTangentialSpeed(parameterU, currentSpeed);
+		double maxTangentialSpeed = calculateMaxTangentialSpeed(parameterU, desiredSpeed, currentSpeed);
+		/*
         double speedError = maxTangentialSpeed - currentSpeed;
 
         double inertialAccelMagnitude = (centripetalAccelVector + gravityVector).norm();
@@ -219,20 +223,29 @@ public:
         if (inertialAccelVector.norm() == 0.)
         {
             inertialAccelVector = Eigen::Vector3d(0., 0., -1.e-8); // A zero vector would result in an undefined orientation.
-        }
+        }*/
         
-        /*
+        
+			
+		//! We want to go in the direction of the tangent vector.  
+		double speedError = desiredSpeed - currentSpeed;
+		double tangentialAccelEffort  = tangentAccelerationGain * speedError;
+		
+		tangentialAccelVector = tangentVector.normalized() * tangentialAccelEffort;
+		inertialAccelVector = centripetalAccelVector.normalized() + tangentialAccelVector - gravityVector;
+		
+		
+		
         ROS_INFO_STREAM_THROTTLE(0.5, "calculateDesiredAccelVector\n"
 			"                 speedError: " << speedError << "\n"
-			"         maxTangentialSpeed: " << maxTangentialSpeed << "\n"
-			"     inertialAccelMagnitude: " << inertialAccelMagnitude << "\n"
-			"     centripetalAccelVector: " << centripetalAccelVector.transpose() << "\n"
-			"maxTangentialAccelMagnitude: " << maxTangentialAccelMagnitude << "\n"
+			//"         maxTangentialSpeed: " << maxTangentialSpeed << "\n"
+			//"     inertialAccelMagnitude: " << inertialAccelMagnitude << "\n"
+			//"     centripetalAccelVector: " << centripetalAccelVector.transpose() << "\n"
+			//"maxTangentialAccelMagnitude: " << maxTangentialAccelMagnitude << "\n"
 			"      tangentialAccelEffort: " << tangentialAccelEffort << "\n"
 			"      tangentialAccelVector: " << tangentialAccelVector.transpose() << "\n"
 			"        inertialAccelVector: " << inertialAccelVector.transpose() << "\n"
-			);
-			**/
+			);		
 
         return inertialAccelVector;
     }

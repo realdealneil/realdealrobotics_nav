@@ -247,7 +247,7 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 	//! Test code from AttitudeControl:
 	double u=0.01;	
 	double curvature = 0.0;
-	double max_tangent_speed = _attitudeControl.calculateMaxTangentialSpeed(u, 0.1);
+	double max_tangent_speed = _attitudeControl.calculateMaxTangentialSpeed(u, 5.0, 0.1);
 	
 	ROS_INFO("Computing curvature at u = %f: k = %f, maxSpeed = %f",
 		u, _attitudeControl.getCurvature(), max_tangent_speed);
@@ -291,8 +291,10 @@ mav_msgs::RateThrust splineMaker::GetCmdsToFollowSpline(void)
 	
 	double currentSpeed = _vehiclePose.v.norm();
 	
+	const double desiredSpeed = 5.0;
+	
 	Eigen::Vector3d desiredAccelVector = _attitudeControl.calculateDesiredAccelVector(
-		lookaheadParam, currentSpeed);
+		lookaheadParam, desiredSpeed, currentSpeed);
 		
 	Eigen::Matrix3d desiredBodyAxes = Eigen::Matrix3d::Zero();
 	Eigen::Vector3d tangentVectorAtLookahead = _attitudeControl.calculateSplineDerivatives(lookaheadParam, 1);
@@ -380,43 +382,62 @@ mav_msgs::RateThrust splineMaker::TakeOffMode(void)
 	
 	double desiredClimbRate = 1.0 * positionError(2);
 	
-	/*double secondsSinceStart = (ms_time() - startTime_ms)*0.001;
-	
-	if (secondsSinceStart > 0  && secondsSinceStart < 5.0)
-	{
-		desiredClimbRate = 0.0;
-	}
-	else if (secondsSinceStart >= 5.0 && secondsSinceStart < 10.0)
-	{
-		desiredClimbRate = 2.0;
-	}
-	else if (secondsSinceStart >= 10.0 && secondsSinceStart < 15.0)
-	{
-		desiredClimbRate = 0.0;
-	}
-	else if (secondsSinceStart >= 15.0 && secondsSinceStart < 20.0)
-	{
-		desiredClimbRate = -2.0;
-	} 
-	else 
-	{
-		desiredClimbRate = 0.0;  
-		startTime_ms = ms_time();
-	}	*/
-	
 	double actualClimbRate = _vehiclePose.v(2);
 	
 	double climbRateError = desiredClimbRate - actualClimbRate;
-	
-	
 	
 	//! Command acceleration proportional to position error:
 	mav_msgs::RateThrust takeoffCmd;
 	takeoffCmd.thrust.z = 2.0 * climbRateError + GRAVITY;
 	
+	//! Now, try to achieve an attitude that is straight up, facing x=0:
+	Eigen::Matrix3d desiredBodyAxes = Eigen::Matrix3d::Zero();
+	//Eigen::Vector3d tangentVectorAtLookahead = _attitudeControl.calculateSplineDerivatives(lookaheadParam, 1);
+	//desiredBodyAxes.col(0) = Eigen::Vector3d(1.0, 0.0, 0.0).normalized();
+	//desiredBodyAxes.col(2) = Eigen::Vector3d(0.0, 0.0, 1.0);
+	//desiredBodyAxes.col(1) = desiredBodyAxes.row(2).cross(desiredBodyAxes.row(0));
+	
+	//! Convert the desired body axes to a quaternion
+	//Eigen::Quaterniond desiredBodyQuat(desiredBodyAxes);
+	Eigen::Quaterniond desiredBodyQuat = EulerToQuat(0.0, 0.0*DEG2RAD, 90.0*DEG2RAD);
+	
+	// TODO: Create functions in a library to do the following so we do it in a consistent manner:
+	//! Convert desired attitude to Euler angles for debugging:
+	//! Convert the transform quaternion to an Eigen Quaternion:
+	tf::Quaternion q_desired_tf;
+	tf::quaternionEigenToTF(desiredBodyQuat, q_desired_tf);
+	
+	//! Convert the quaternion to roll pitch yaw:
+	RdrRpy desiredRpy;				
+	tf::Matrix3x3(q_desired_tf).getEulerYPR(
+			desiredRpy.yaw, desiredRpy.pitch, desiredRpy.roll);			
+	
+	//! Compute error quaternion (desired composed with actual)
+	Eigen::Quaterniond error_quat = calc_quaternion_error(_vehiclePose.q,
+		desiredBodyQuat);
+	
+	//! Convert to angle-axis
+	Eigen::Vector3d error_aa = to_angle_axis(error_quat);
+	
+	//! Generate control outputs proportional to angle-axis error
+	const double kp_rate_x=5.0;
+	const double kp_rate_y=5.0;
+	const double kp_rate_z=5.0;
+	mav_msgs::RateThrust rateThrustMsg;
+	takeoffCmd.angular_rates.x = kp_rate_x * error_aa(0);
+	takeoffCmd.angular_rates.y = kp_rate_y * error_aa(1);
+	takeoffCmd.angular_rates.z = kp_rate_z * error_aa(2);	
+	
 	//TODO: compute desired attitude to achieve hover:
-	ROS_INFO_THROTTLE(0.25, "Desired Climb Rate: %f, Error: %f cmd: %f",
-		desiredClimbRate, climbRateError, takeoffCmd.thrust.z);
+	ROS_INFO_THROTTLE(0.25, "\n"
+		"desiredClimbRate: %f, Error: %f cmd: %f\n"
+		"error_aa: %f %f %f\n"
+		"cmds: %f %f %f\n"
+		,
+		desiredClimbRate, climbRateError, takeoffCmd.thrust.z,
+		error_aa(0), error_aa(1), error_aa(2),
+		takeoffCmd.angular_rates.x, takeoffCmd.angular_rates.y, takeoffCmd.angular_rates.z		
+		);
 		
 	return takeoffCmd;	
 }
