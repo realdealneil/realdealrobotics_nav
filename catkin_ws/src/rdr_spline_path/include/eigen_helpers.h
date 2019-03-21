@@ -71,6 +71,11 @@ inline Eigen::Quaterniond EulerToQuat(double phi, double theta, double psi)
 	return result;	
 }
 
+inline double clamp(const double input, double lowerlimit, double upperlimit)
+{
+	return std::max(std::min(input, upperlimit), lowerlimit);
+}
+
 /*
  * @brief Convert a rotation matrix to a quaternion.
  * @note Pay attention to the convention used. The function follows the

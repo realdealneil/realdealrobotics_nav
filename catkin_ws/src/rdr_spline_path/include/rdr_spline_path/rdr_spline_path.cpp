@@ -285,27 +285,77 @@ void splineMaker::MakeSplineFromWaypoints(const WaypointList& wplist)
 
 mav_msgs::RateThrust splineMaker::GetCmdsToFollowSpline(void)
 {
+	const double desiredSpeed = 5.0;
+	static double currentDesiredSpeed = 0.0;
+	const double accelAllowed = 0.5*GRAVITY;
+	const double kp_speed2d = 1.0;
+	const double kp_climbrate = 1.0;
+	const double kp_thrust = 2.0;
+	
+	const double kp_rate_x=1.0;
+	const double kp_rate_y=1.0;
+	const double kp_rate_z=1.0;
+	
 	double closestParam = _attitudeControl.findClosestParam(_vehiclePose.p);
 	
 	double lookaheadParam = _attitudeControl.findLookAheadParam(1.0);
 	
-	double currentSpeed = _vehiclePose.v.norm();
+	double speed3d = _vehiclePose.v.norm();
 	
-	const double desiredSpeed = 5.0;
+	double vx_w = _vehiclePose.v(0);
+	double vy_w = _vehiclePose.v(1);
+	double vz_w = _vehiclePose.v(2);
 	
-	Eigen::Vector3d desiredAccelVector = _attitudeControl.calculateDesiredAccelVector(
-		lookaheadParam, desiredSpeed, currentSpeed);
+	double speed2d = std::sqrt(vx_w*vx_w + vy_w*vy_w);
+	
+	//! Slew desired speed to control our acceleration:
+	currentDesiredSpeed += accelAllowed*(1.0/60.0);
+	currentDesiredSpeed = std::min(currentDesiredSpeed, desiredSpeed);
+	
+	double speed2dError = currentDesiredSpeed - speed2d;
+	
+	//! Compute desired pitch angle based on 2D speed error:
+	double desiredPitchAngle = clamp(kp_speed2d * speed2dError, -45.0*DEG2RAD, 45.0*DEG2RAD);
+	
+	//! Compute desired roll angle based on how much the spline curves away from us:
+	double desiredRollAngle = 0.0;	
+	
+	//! Get the desired yaw by turning setting yaw in the direction of the vector from us to the spline:
+	Eigen::Vector3d currentPosition = _vehiclePose.p;
+	Eigen::Vector3d forwardPosition = _wpSpline(lookaheadParam);
+	
+	Eigen::Vector3d correctionVector = forwardPosition - currentPosition;
+	double desiredYaw = std::atan2(correctionVector(1), correctionVector(0));
+	
+	//! Compute the desired throttle by taking gravity vector and dividing by cos(phi)*cos(theta)
+	double desiredZ = forwardPosition(2);
+	double altError = desiredZ - currentPosition(2);
+	
+	double desiredClimbRate = kp_climbrate * altError;
+	
+	double actualClimbRate = _vehiclePose.v(2);
+	
+	double climbRateError = desiredClimbRate - actualClimbRate;
+	
+	//! Command acceleration proportional to position error:
+	//mav_msgs::RateThrust takeoffCmd;
+	double gravity_correction = std::max(cos(desiredRollAngle)*cos(desiredPitchAngle), 0.25);
+	double throttle_cmd = kp_thrust * climbRateError + GRAVITY/gravity_correction;	
 		
-	Eigen::Matrix3d desiredBodyAxes = Eigen::Matrix3d::Zero();
-	Eigen::Vector3d tangentVectorAtLookahead = _attitudeControl.calculateSplineDerivatives(lookaheadParam, 1);
-	desiredBodyAxes.col(0) = tangentVectorAtLookahead.normalized();
-	desiredBodyAxes.col(2) = desiredAccelVector.normalized();
-	desiredBodyAxes.col(1) = desiredBodyAxes.row(2).cross(desiredBodyAxes.row(0));
+	//Eigen::Vector3d desiredAccelVector = _attitudeControl.calculateDesiredAccelVector(
+	//	lookaheadParam, desiredSpeed, currentSpeed);
+		
+	//Eigen::Matrix3d desiredBodyAxes = Eigen::Matrix3d::Zero();
+	//Eigen::Vector3d tangentVectorAtLookahead = _attitudeControl.calculateSplineDerivatives(lookaheadParam, 1);
+	//desiredBodyAxes.col(0) = tangentVectorAtLookahead.normalized();
+	//desiredBodyAxes.col(2) = desiredAccelVector.normalized();
+	//desiredBodyAxes.col(1) = desiredBodyAxes.row(2).cross(desiredBodyAxes.row(0));
 	
-	double throttle_cmd = desiredAccelVector.norm(); // This may not be right, but it's a start
+	//double throttle_cmd = desiredAccelVector.norm(); // This may not be right, but it's a start
 		
 	//! Convert the desired body axes to a quaternion
-	Eigen::Quaterniond desiredBodyQuat(desiredBodyAxes);
+	//Eigen::Quaterniond desiredBodyQuat(desiredBodyAxes);
+	Eigen::Quaterniond desiredBodyQuat = EulerToQuat(desiredRollAngle, desiredPitchAngle, desiredYaw);
 	
 	// TODO: Create functions in a library to do the following so we do it in a consistent manner:
 	//! Convert desired attitude to Euler angles for debugging:
@@ -325,15 +375,25 @@ mav_msgs::RateThrust splineMaker::GetCmdsToFollowSpline(void)
 	//! Convert to angle-axis
 	Eigen::Vector3d error_aa = to_angle_axis(error_quat);
 	
-	//! Generate control outputs proportional to angle-axis error
-	const double kp_rate_x=1.0;
-	const double kp_rate_y=1.0;
-	const double kp_rate_z=1.0;
+	//! Generate control outputs proportional to angle-axis error	
 	mav_msgs::RateThrust rateThrustMsg;
 	rateThrustMsg.angular_rates.x = kp_rate_x * error_aa(0);
 	rateThrustMsg.angular_rates.y = kp_rate_y * error_aa(1);
 	rateThrustMsg.angular_rates.z = kp_rate_z * error_aa(2);
 	rateThrustMsg.thrust.z = throttle_cmd;
+	
+	ROS_INFO_THROTTLE(0.5, "\n"
+		"Vehicle Position: %f %f %f, RPY: %f %f %f\n"
+		"Desired RPY (input): %f %f %f\n"
+		"Desired RPY (output): %f %f %f\n"	
+		"Desired speed: %f, Actual Speed: %f\n"	
+		,
+		_vehiclePose.p(0), _vehiclePose.p(1), _vehiclePose.p(2), 
+		_vehiclePose.rpy.roll*RAD2DEG, _vehiclePose.rpy.pitch*RAD2DEG, _vehiclePose.rpy.yaw*RAD2DEG,
+		desiredRollAngle*RAD2DEG, desiredPitchAngle*RAD2DEG, desiredYaw*RAD2DEG,
+		desiredRpy.roll*RAD2DEG, desiredRpy.pitch*RAD2DEG, desiredRpy.yaw*RAD2DEG,
+		currentDesiredSpeed, speed2d
+		);
 	
 	/*
 	ROS_INFO_STREAM_THROTTLE(0.5, "\n"
@@ -472,13 +532,8 @@ void splineMaker::Run60HzLoop()
 }
 
 void splineMaker::Run5HzLoop()
-{	
-	ROS_INFO_THROTTLE(0.5, "Vehicle Position: %f %f %f, RPY: %f %f %f",
-		_vehiclePose.p(0), _vehiclePose.p(1), _vehiclePose.p(2), 
-		_vehiclePose.rpy.roll*RAD2DEG, _vehiclePose.rpy.pitch*RAD2DEG, _vehiclePose.rpy.yaw*RAD2DEG); 
-	
+{		
 	rvizMarkerPub_.publish(rvizMarkerArray_);
-	
 }
 
 

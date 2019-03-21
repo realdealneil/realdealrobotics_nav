@@ -88,7 +88,7 @@ private:
 	RdrPose _vehiclePose;
 	bool _poseValid = false;
 	
-	FlightMode flightMode_ = FlightMode::MODE_TAKEOFF;
+	FlightMode flightMode_ = FlightMode::MODE_FOLLOW_SPLINE;
 	
 	/// \brief Attitude Control class
 	AttitudeControl _attitudeControl{};
