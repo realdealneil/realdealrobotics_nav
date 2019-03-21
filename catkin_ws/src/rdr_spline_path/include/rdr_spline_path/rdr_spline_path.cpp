@@ -288,13 +288,14 @@ mav_msgs::RateThrust splineMaker::GetCmdsToFollowSpline(void)
 	const double desiredSpeed = 5.0;
 	static double currentDesiredSpeed = 0.0;
 	const double accelAllowed = 0.5*GRAVITY;
-	const double kp_speed2d = 1.0;
+	const double kp_speed2d = 0.1;
 	const double kp_climbrate = 1.0;
 	const double kp_thrust = 2.0;
+	const double kp_roll = 0.25;
 	
-	const double kp_rate_x=1.0;
-	const double kp_rate_y=1.0;
-	const double kp_rate_z=1.0;
+	const double kp_rate_x=2.0;
+	const double kp_rate_y=2.0;
+	const double kp_rate_z=2.0;
 	
 	double closestParam = _attitudeControl.findClosestParam(_vehiclePose.p);
 	
@@ -315,17 +316,20 @@ mav_msgs::RateThrust splineMaker::GetCmdsToFollowSpline(void)
 	double speed2dError = currentDesiredSpeed - speed2d;
 	
 	//! Compute desired pitch angle based on 2D speed error:
-	double desiredPitchAngle = clamp(kp_speed2d * speed2dError, -45.0*DEG2RAD, 45.0*DEG2RAD);
-	
-	//! Compute desired roll angle based on how much the spline curves away from us:
-	double desiredRollAngle = 0.0;	
+	double desiredPitchAngle = clamp(kp_speed2d * speed2dError, -45.0*DEG2RAD, 45.0*DEG2RAD);	
 	
 	//! Get the desired yaw by turning setting yaw in the direction of the vector from us to the spline:
+	Eigen::Vector3d tangentVectorAtLookahead = _attitudeControl.calculateSplineDerivatives(lookaheadParam, 1);
+	//Eigen::Vector3d tangentVectorAtLookahead = _attitudeControl.calculateSplineDerivatives(closestParam, 1);
+	double desiredYaw = std::atan2(tangentVectorAtLookahead(1), tangentVectorAtLookahead(0));	
+	
+	//! Compute desired roll angle based on how much the spline curves away from us:
 	Eigen::Vector3d currentPosition = _vehiclePose.p;
 	Eigen::Vector3d forwardPosition = _wpSpline(lookaheadParam);
 	
-	Eigen::Vector3d correctionVector = forwardPosition - currentPosition;
-	double desiredYaw = std::atan2(correctionVector(1), correctionVector(0));
+	Eigen::Vector3d correctionVector = forwardPosition - currentPosition;	
+	double desiredRollAngle = -kp_roll*(std::atan2(correctionVector(1), correctionVector(0)) - desiredYaw);	
+	desiredRollAngle = clamp(desiredRollAngle, -45.0*DEG2RAD, 45.0*DEG2RAD);
 	
 	//! Compute the desired throttle by taking gravity vector and dividing by cos(phi)*cos(theta)
 	double desiredZ = forwardPosition(2);
