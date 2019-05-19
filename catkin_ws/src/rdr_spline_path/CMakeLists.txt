@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 	tf_conversions
 	nav_msgs
 	sensor_msgs
+	mav_msgs
 	geometry_msgs	
 	visualization_msgs
 	message_generation
@@ -144,6 +145,7 @@ add_executable(rdr_spline_path_node
 	src/rdr_spline_path_node.cpp
   include/rdr_spline_path/rdr_spline_path.cpp
   src/eigen_helpers.cpp
+  src/import_helpers.cpp
 	)
 
 

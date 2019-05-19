@@ -42,6 +42,24 @@ int main()
   std::cout << "eigen gatelist size: " << egll.gates.size() << std::endl;
   std::cout << "eigen corners:\n" << egll.gates[0].corners << std::endl;
 
+
+  Eigen::Quaterniond a{0.9807853, 0, 0, 0.1950903};
+  Eigen::Quaterniond d{0.9238795, 0, 0, 0.3826834};
+
+  Eigen::Quaterniond e = calc_quaternion_error(a, d);
+
+  std::cout << "Err:\n"
+    << e.w()
+    << "\n" << e.x()
+    << "\n" << e.y()
+    << "\n" << e.z()
+    << std::endl;
+
+  Eigen::Vector3d aa = to_angle_axis(e);
+
+  std::cout << "aa: " << aa.transpose() << std::endl;
+
   return 0;
 }
 
+// g++ eigen_helpers_test.cpp eigen_helpers.cpp -o eigen_helpers_test -I/usr/local/include/eigen3/ -I../../../devel/include/ -I../include/ -I/opt/ros/kinetic/include/ -Wall -Wextra

@@ -66,3 +66,47 @@ Eigen::Vector3d calc_gate_center_offset(double dist,
   return dist * gate_normal + gate_center;
 }
 
+// cur - current attitude quaternion
+// des - desired attitude quaternion
+// returns e- the quaternion that will rotate the vehicle from the current 
+// attitude to the desired attitude
+/*Eigen::Quaterniond calc_quaternion_error(const Eigen::Quaterniond& cur,
+  const Eigen::Quaterniond& des)
+{
+  Eigen::Quaterniond e;
+  e.w() = cur.w()*des.w() + cur.x()*des.x() + cur.y()*des.y() + cur.z()*des.z();
+  e.x() = cur.w()*des.x() - cur.x()*des.w() - cur.y()*des.z() + cur.z()*des.y();
+  e.y() = cur.w()*des.y() - cur.y()*des.w() + cur.x()*des.z() - cur.z()*des.x();
+  e.z() = cur.w()*des.z() - cur.x()*des.y() + cur.y()*des.x() - cur.z()*des.w();
+  if (e.w() < 0) // check for double coverage
+  {
+    e.w() = -e.w();
+    e.x() = -e.x();
+    e.y() = -e.y();
+    e.z() = -e.z();
+  }
+  return e;
+}
+*/
+Eigen::Quaterniond calc_quaternion_error(const Eigen::Quaterniond& actual,
+  const Eigen::Quaterniond& desired)
+{
+  return (actual.conjugate() * desired).normalized();
+}
+
+
+Eigen::Vector3d to_angle_axis(const Eigen::Quaterniond& q)
+{
+  if( q.w() >= 1.0)
+  {
+    return {0,0,0};
+  }
+  double angle = 2.0 * acos(q.w());
+  double den = sqrt(1-q.w()*q.w());
+  Eigen::Vector3d aa;
+  aa.x() = q.x() / den;
+  aa.y() = q.y() / den;
+  aa.z() = q.z() / den;
+
+  return angle * aa.normalized();
+}

@@ -10,69 +10,10 @@
 #include <iostream>
 #include <cstdio>
 #include <cmath>
-#include <rdr_spline_path/rdr_spline_path.h>
-#include <rdr_spline_path/GateLocationList.h>
 
-using namespace rdr_spline_path;
+#include "import_helpers.h"
+
 using namespace std;
-
-GateLocationList importGateLocations(ros::NodeHandle &n) 
-{
-  XmlRpc::XmlRpcValue cornerlist;
-  XmlRpc::XmlRpcValue perturb;
-
-  GateLocationList gll;
-
-  const std::string& ns{"rdr_spline_path"}; 
-  const std::string& gate_location_key_name {"nominal_location"};
-  const std::string& perturbation_key_name {"perturbation_bound"};
-
-  unsigned gate_index = 0;
-  while(1)
-  {
-    gate_index++;
-    std::string location_param_name = std::string(ns + "/Gate" + 
-      std::to_string(gate_index) + "/" + gate_location_key_name);
-    std::string perturbation_param_name = std::string(ns + "/Gate" + 
-      std::to_string(gate_index) + "/" + perturbation_key_name);
-
-    ROS_INFO("Looking for param name: %s", location_param_name.c_str());
-    if (!n.hasParam(location_param_name.c_str()))
-    {
-      ROS_INFO("Param: %s not found. Not looking for more gates.", 
-        location_param_name.c_str());
-      fflush(stdout);  
-      break;
-    }
-
-    GateLocation gl;
-    n.getParam(location_param_name.c_str(), cornerlist);
-    for (int corner_index = 0; corner_index < cornerlist.size(); corner_index++)
-    {
-      ROS_ASSERT(cornerlist[corner_index].size() == 3);
-      geometry_msgs::Point point;  
-      point.x = cornerlist[corner_index][0];
-      point.y = cornerlist[corner_index][1];
-      point.z = cornerlist[corner_index][2];  
-      gl.corners.emplace_back(point);
-      ROS_INFO("adding corner %d: [%.6f, %.6f, %.6f]", corner_index, 
-        point.x, point.y, point.z);
-    }
-
-    if (n.hasParam(perturbation_param_name.c_str()))
-    {
-      n.getParam(perturbation_param_name.c_str(), perturb);
-      gl.perturbation_bound.x = perturb[0];
-      gl.perturbation_bound.y = perturb[1];
-      gl.perturbation_bound.z = perturb[2];
-      ROS_INFO("add perturbation bound: [%.3f, %.3f, %.3f]",
-        gl.perturbation_bound.x, gl.perturbation_bound.y, 
-        gl.perturbation_bound.z);  
-    }
-    gll.gates.emplace_back(gl);
-  }
-  return gll;
-}
 
 
 
@@ -86,12 +27,14 @@ int main(int argc, char ** argv)
     mySplineMaker.print_gate_list();
 
     // Here's the order: ['Gate10', 'Gate21', 'Gate2', 'Gate13', 'Gate9', 'Gate14', 'Gate1', 'Gate22', 'Gate15', 'Gate23', 'Gate6']
-    GateList gate_list{10,21,2,13,9,14,1,22,15,23,6};
+    //GateList gate_list{10,21,2,13,9,14,1,22,15,23,6};
+    GateList gate_list = importGateList(n);
+    geometry_msgs::Pose initial_pose = get_initial_pose(n);
 
     mySplineMaker.SetCornerMarkersForPublishing(gate_list);
 
     WaypointList wplist = mySplineMaker.constructWaypointList(
-    Eigen::Vector3d{0,0,0}, gate_list);
+      to_eigen(initial_pose.position), gate_list);
 
     mySplineMaker.MakeSplineFromWaypoints(wplist);
 

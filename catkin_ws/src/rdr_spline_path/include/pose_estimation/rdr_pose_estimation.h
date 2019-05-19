@@ -20,12 +20,13 @@ struct RdrRpy {
 	double pitch;
 	double yaw;
 };
-
+ 
 struct RdrPose {
 	
 	Eigen::Quaterniond q;
 	Eigen::Vector3d p;
 	RdrRpy rpy;
+	Eigen::Vector3d v;
 };
 
 class poseEstimation
@@ -38,6 +39,7 @@ public:
 	
 	bool getVehiclePose(RdrPose& pose)
 	{
+		
 		try {
 			_listener.lookupTransform("/world", 
 				"uav/imu",
@@ -59,6 +61,21 @@ public:
 		//! Convert the translation from the world frame into Eigen Vector3:
 		tf::vectorTFToEigen(_transform.getOrigin(), pose.p);
 		
+		if (lastRosTime_ < 0.0) 
+		{
+			lastRosTime_ = ros::Time::now().toSec();
+			prev_position = pose.p;
+		}
+		
+		double now = ros::Time::now().toSec();
+		double dt = std::max(now - lastRosTime_, 0.01);
+		
+		//! Compute the numerical derivative of position to get speed:	
+		pose.v = (pose.p - prev_position)/dt;		
+			
+		lastRosTime_ = now;
+		prev_position = pose.p;
+		
 		return true;
 	}
 	
@@ -66,6 +83,10 @@ private:
 	ros::NodeHandle _nh;
 	tf::TransformListener _listener;
 	tf::StampedTransform _transform;
+	
+	Eigen::Vector3d prev_position;
+	
+	double lastRosTime_ = -1.0;
 };
 
 

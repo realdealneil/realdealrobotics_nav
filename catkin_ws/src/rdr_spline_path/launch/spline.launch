@@ -1,12 +1,55 @@
 <?xml version="1.0"?>
 <launch>
+  <arg name="use_external_renderer" default="1" />
+  <arg name="ignore_collisions" default="true" />
+  <arg name="render_stereo" default="0" />
+  <arg name="level" default="final" />
+  <arg name="use_joy" default="false" />
+  <!--<arg name="gate_locations" default="0"/>-->
+  <env name="CWD" value="$(env PWD)" />	
+  
+  <group ns="/control_nodes" if="$(arg use_joy)">
+    <!-- Start human teleoperation nodes -->
+    <node name="joy" pkg="joy" type="joy_node"/>
+    <node name="keyboard" pkg="keyboard" type="keyboard"/>
+    <node name="universal_teleop" pkg="universal_teleop" type="universal_teleop" output="screen">
+      <rosparam file="$(find universal_teleop)/launch/example_input_map.yml"/>
+
+      <remap from="output/rateThrust" to="/uav/input/rateThrust"/>
+      <remap from="output/takeoff" to="/uav/input/takeoff"/>
+      <remap from="output/land" to="/uav/input/land"/>
+      <remap from="output/reset" to="/uav/input/reset"/>
+    </node>
+  </group>
+  
+  
+	
   <arg name="gate_locations_file"
     default="$(find rdr_spline_path)/config/nominal_gate_locations_org.yaml" />
+  <!--arg name="perturbations_file"
+    default="$(find rdr_spline_path)/config/perturbations/perturbed_gates_0.yaml" /-->
   <arg name="challenge_gate_list"
-    default="$(find rdr_spline_path)/config/challenge_alphapilot_test3.yaml" />
+    default="$(find rdr_spline_path)/config/challenges/challenge_final.yaml" />
+    
+  <!--include core flightgoggles launch file-->
+  <include file="$(find flightgoggles)/launch/core.launch">
+    <arg name="use_external_renderer" value="$(arg use_external_renderer)"/>
+    <arg name="render_stereo" value="$(arg render_stereo)"/>
+    <arg name="ignore_collisions" value="$(arg ignore_collisions)"/>
+    <!--<arg name="gate_locations" value="$(arg gate_locations)"/>-->
+  </include>
   
-  <node name="rdr_spline_path" pkg="rdr_spline_path" type="rdr_spline_path_node" output="screen">
+  <!--
+  <node name="reporter" pkg="flightgoggles_reporter" type="reporter.py" output="screen" cwd='node' required="true"/>
+  -->
+  <!-- Launch override settings. Must be placed at end of file to override params set in core launchfile. -->
+
+  <group ns="/uav">
     <rosparam command="load" file="$(arg gate_locations_file)"/>
+    <!--rosparam command="load" file="$(arg perturbations_file)"/-->
     <rosparam command="load" file="$(arg challenge_gate_list)"/>
-  </node>
+    <rosparam command="load" file="$(find flightgoggles)/config/challenges/challenge_final.yaml"/>  
+  </group>
+
+  <node name="rdr_spline_path" pkg="rdr_spline_path" type="rdr_spline_path_node" output="screen" />
 </launch>
